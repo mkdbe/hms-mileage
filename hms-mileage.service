@@ -1,0 +1,18 @@
+[Unit]
+Description=Highland Media Services — Mileage Tracker
+After=network.target
+
+[Service]
+Type=simple
+User=mdbe
+WorkingDirectory=/var/www/html/mileage.highlandmediaservices.com
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=hms-mileage
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
