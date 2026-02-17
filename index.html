@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HMS Mileage">
+<meta name="theme-color" content="#0a0a0a">
+<title>HIGHLANDMEDIA — MILEAGE</title>
+<link rel="icon" type="image/png" href="mileage-icon.png">
+<link rel="apple-touch-icon" href="mileage-icon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #0a0a0a;
+  --bg2:    #0f0f0f;
+  --surf:   #111111;
+  --surf2:  #181818;
+  --surf3:  #1e1e1e;
+  --border: rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.04);
+  --red:    #c0392b;
+  --red2:   #e04030;
+  --white:  #ffffff;
+  --off:    #e8e4dd;
+  --muted:  rgba(232,228,221,0.38);
+  --muted2: rgba(232,228,221,0.18);
+  --good:   #3aaa74;
+  --warn:   #d4922a;
+  --safe-b: env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--off);height:100%;overflow:hidden}
+
+.accent-line{position:fixed;left:0;top:0;bottom:0;width:3px;background:var(--red);z-index:400}
+
+header{
+  height:58px;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px 0 29px;position:fixed;top:0;left:0;right:0;z-index:300
+}
+.brand{display:flex;align-items:baseline;gap:0;line-height:1}
+.brand a{text-decoration:none}
+.brand-logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.04em;color:var(--white)}
+.brand-logo em{font-style:normal}
+.brand-divider{width:1px;height:16px;background:var(--border);margin:0 14px;align-self:center}
+.brand-sub{font-size:.6rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.hpills{display:flex;align-items:center}
+.hp{display:flex;align-items:center;gap:8px;padding:0 14px;border-left:1px solid var(--border)}
+.hp:first-child{border-left:none}
+.hp-v{font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;color:var(--white)}
+.hp-v.red{color:var(--red)}
+.hp-v.good{color:var(--good)}
+.hp-v.warn{color:var(--warn)}
+.hp-l{font-size:.55rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted2)}
+
+.app{position:fixed;top:58px;bottom:0;left:0;right:0;display:grid;grid-template-columns:320px 1fr;overflow:hidden}
+
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.stabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);flex-shrink:0}
+.stab{padding:13px 6px;text-align:center;font-size:.6rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.stab.on{color:var(--white);border-bottom-color:var(--red)}
+.stab:hover:not(.on){color:var(--off)}
+.spanel{display:none;flex-direction:column;flex:1;overflow:hidden}
+.spanel.on{display:flex}
+
+.fscroll{flex:1;overflow-y:auto;padding:18px 18px 0}
+.fscroll::-webkit-scrollbar{width:2px}
+.fscroll::-webkit-scrollbar-thumb{background:var(--border)}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:.58rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.field label .req{color:var(--red);margin-left:2px}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--surf3);border:1px solid var(--border);border-radius:0;
+  padding:9px 11px;color:var(--off);font-family:'Barlow',sans-serif;font-size:13px;font-weight:400;
+  outline:none;-webkit-appearance:none;transition:border-color .15s
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(192,57,43,.6)}
+.field select option{background:var(--surf3)}
+.field textarea{resize:none;height:50px;font-size:12px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Autocomplete */
+.autocomplete-wrap{position:relative}
+.autocomplete-dropdown{
+  position:absolute;top:100%;left:0;right:0;background:var(--surf2);
+  border:1px solid var(--border);border-top:none;max-height:200px;overflow-y:auto;
+  z-index:50;display:none
+}
+.autocomplete-dropdown.show{display:block}
+.autocomplete-dropdown::-webkit-scrollbar{width:2px}
+.autocomplete-dropdown::-webkit-scrollbar-thumb{background:var(--border)}
+.autocomplete-item{
+  padding:9px 11px;font-size:13px;color:var(--off);cursor:pointer;
+  transition:background .1s
+}
+.autocomplete-item:hover,.autocomplete-item.selected{background:var(--surf3)}
+
+.name-row{display:flex;gap:6px;align-items:flex-end}
+.name-row .field{flex:1;margin-bottom:0}
+.star-btn{background:var(--surf3);border:1px solid var(--border);color:var(--muted);cursor:pointer;padding:9px 10px;white-space:nowrap;font-size:16px;font-weight:600;transition:all .15s;flex-shrink:0;height:38px;display:flex;align-items:center;justify-content:center;min-width:38px}
+.star-btn:hover{color:var(--white);border-color:rgba(192,57,43,.5)}
+
+/* Trip type buttons */
+.trip-btns{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:13px}
+.trip-btn{background:var(--surf3);border:1px solid var(--border);padding:8px 5px;font-size:.58rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s}
+.trip-btn:hover{color:var(--off)}
+.trip-btn.on{background:rgba(192,57,43,.1);border-color:rgba(192,57,43,.5);color:var(--white)}
+
+/* Stop inputs */
+.stop-row{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.stop-badge{font-family:'Bebas Neue',sans-serif;font-size:12px;font-weight:600;color:var(--warn);width:18px;flex-shrink:0;text-align:center}
+.stop-row input{flex:1;font-size:13px;padding:9px 11px;background:var(--surf3);border:1px solid var(--border);color:var(--off);outline:none}
+.stop-row input:focus{border-color:rgba(192,57,43,.6)}
+.stop-remove{background:none;border:1px solid var(--border);color:var(--muted);width:28px;height:28px;cursor:pointer;flex-shrink:0;font-size:15px;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.stop-remove:hover{border-color:var(--red);color:var(--red2)}
+.add-stop-btn{width:100%;background:none;border:1px dashed var(--border);color:var(--muted2);padding:6px;font-size:.58rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .15s;margin-top:2px}
+.add-stop-btn:hover{border-color:var(--muted);color:var(--muted)}
+
+/* Mileage preview */
+.preview{background:var(--surf);border:1px solid var(--border);border-left:2px solid var(--good);padding:12px 13px;margin-bottom:13px;display:none}
+.preview.on{display:block}
+.preview-miles{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.preview-miles input{
+  font-family:'Bebas Neue',sans-serif;font-size:32px;font-weight:600;color:var(--white);
+  background:none;border:none;border-bottom:1px solid var(--border);width:90px;
+  padding:0 0 2px;outline:none
+}
+.preview-miles input:focus{border-bottom-color:rgba(192,57,43,.6)}
+.preview-unit{font-size:14px;color:var(--muted)}
+.preview-tag{font-size:.55rem;color:var(--muted2);margin-left:4px}
+.preview-detail{font-size:11px;color:var(--muted);line-height:1.7}
+.preview-detail .hi{color:var(--white)}
+
+.calc-btn{
+  display:block;width:calc(100% - 36px);margin:0 18px 8px;
+  background:var(--surf);color:var(--muted);border:1px solid var(--border);
+  padding:10px;font-family:'Bebas Neue',sans-serif;font-size:14px;
+  letter-spacing:.16em;text-transform:uppercase;cursor:pointer;
+  transition:all .15s;flex-shrink:0
+}
+.calc-btn:hover{background:var(--surf2);color:var(--white);border-color:rgba(192,57,43,.5)}
+
+.add-btn{
+  display:block;width:calc(100% - 36px);margin:8px 18px 16px;
+  background:var(--red);color:var(--white);border:none;padding:12px;
+  font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.18em;
+  text-transform:uppercase;cursor:pointer;flex-shrink:0;transition:background .15s
+}
+.add-btn:hover{background:var(--red2)}
+.add-btn:active{transform:scale(.99)}
+.add-btn:disabled{background:var(--surf2);color:var(--muted2);cursor:not-allowed}
+
+.main{display:flex;flex-direction:column;overflow:hidden;padding:18px 22px;gap:12px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex-shrink:0}
+.sc{background:var(--surf);border:1px solid var(--border);padding:12px 14px}
+.sc-v{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;margin-bottom:3px;color:var(--white)}
+.sc-v.red{color:var(--red)}
+.sc-v.good{color:var(--good)}
+.sc-l{font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2)}
+
+.controls{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.cbtn{background:var(--surf);border:1px solid var(--border);padding:8px 12px;color:var(--muted);font-size:.6rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
+.cbtn:hover,.cbtn.on{color:var(--white);border-color:rgba(192,57,43,.5)}
+
+.thead{display:grid;grid-template-columns:0.8fr 1.5fr 1fr 0.7fr 1fr 56px;border:1px solid var(--border);background:var(--surf2);padding:0 12px;flex-shrink:0}
+.th{padding:8px 6px;font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;transition:color .12s}
+.th:hover{color:var(--off)}
+.th.on{color:var(--white)}
+
+.tbody-wrap{flex:1;overflow:hidden;min-height:0;display:flex;flex-direction:column}
+.tbody{border:1px solid var(--border);border-top:none;overflow-y:auto;flex:1;background:var(--surf)}
+.tbody::-webkit-scrollbar{width:3px}
+.tbody::-webkit-scrollbar-thumb{background:var(--border)}
+
+.trow{display:grid;grid-template-columns:0.8fr 1.5fr 1fr 0.7fr 1fr 56px;padding:0 12px;border-bottom:1px solid var(--border2);transition:background .1s;animation:rowIn .2s ease forwards}
+@keyframes rowIn{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}
+.trow:last-child{border-bottom:none}
+.trow:hover{background:rgba(255,255,255,.018)}
+.td{padding:11px 6px;font-size:13px;display:flex;align-items:center;font-weight:400}
+
+.td-date{color:var(--muted)}
+.td-client{flex-direction:column;align-items:flex-start;gap:2px}
+.client-name{font-weight:500;font-size:13px;color:var(--white)}
+.trip-badge{font-size:.55rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border:1px solid;margin-top:2px;display:inline-block}
+.tb-round{border-color:rgba(58,170,116,.4);color:var(--good)}
+.tb-one{border-color:rgba(212,146,42,.4);color:var(--warn)}
+.td-route{font-size:11px;color:var(--muted2)}
+.td-miles{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--good)}
+.td-notes{font-size:12px;color:var(--muted2)}
+
+.row-acts{gap:2px}
+.ibtn{background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;display:flex;align-items:center;justify-content:center;min-width:26px;min-height:26px;transition:color .12s}
+.ibtn:hover{color:var(--off)}
+.ibtn.db:hover{color:var(--red2)}
+
+.empty{padding:56px 24px;text-align:center}
+.empty-i{font-size:34px;opacity:.15;margin-bottom:12px}
+.empty h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.1em;color:var(--muted);margin-bottom:5px}
+.empty p{font-size:12px;font-weight:300;color:var(--muted2)}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.on{opacity:1;pointer-events:all}
+.modal{background:var(--surf);border:1px solid var(--border);padding:24px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;transform:translateY(10px);transition:transform .2s}
+.modal::-webkit-scrollbar{width:2px}
+.modal::-webkit-scrollbar-thumb{background:var(--border)}
+.overlay.on .modal{transform:translateY(0)}
+.modal-hdr{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.modal-acts{display:flex;gap:8px;margin-top:18px}
+.btn-save{flex:1;background:var(--red);color:var(--white);border:none;padding:11px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:background .15s}
+.btn-save:hover{background:var(--red2)}
+.btn-cancel{flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);padding:11px;font-size:.6rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transition:color .15s}
+.btn-cancel:hover{color:var(--off)}
+
+.toast{position:fixed;bottom:calc(20px + var(--safe-b));right:20px;background:var(--red);color:var(--white);padding:9px 16px;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.14em;text-transform:uppercase;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:999}
+.toast.on{opacity:1;transform:translateY(0)}
+
+/* Login screen */
+.login-screen{
+  position:fixed;inset:0;background:var(--bg);z-index:1000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;transition:opacity .3s,transform .3s;
+}
+.login-screen.out{opacity:0;transform:translateY(-12px);pointer-events:none}
+.login-box{width:100%;max-width:340px}
+.login-logo{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.04em;color:var(--white);margin-bottom:4px}
+.login-logo em{font-style:normal}
+.login-sub{font-size:.6rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:36px}
+.login-field{margin-bottom:12px}
+.login-field label{display:block;font-size:.58rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.login-field input{
+  width:100%;background:var(--surf3);border:1px solid var(--border);
+  padding:11px 13px;color:var(--white);font-family:'Barlow',sans-serif;
+  font-size:15px;outline:none;border-radius:0;-webkit-appearance:none;
+  transition:border-color .15s;
+}
+.login-field input:focus{border-color:rgba(192,57,43,.6)}
+.login-btn{
+  width:100%;background:var(--red);color:var(--white);border:none;
+  padding:13px;font-family:'Bebas Neue',sans-serif;font-size:17px;
+  letter-spacing:.2em;text-transform:uppercase;cursor:pointer;
+  margin-top:6px;transition:background .15s;
+}
+.login-btn:hover{background:var(--red2)}
+.login-btn:active{transform:scale(.99)}
+.login-err{
+  margin-top:12px;padding:9px 13px;background:rgba(192,57,43,.12);
+  border:1px solid rgba(192,57,43,.4);color:var(--red2);
+  font-size:.65rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  display:none;
+}
+.login-err.on{display:block}
+.login-accent{position:fixed;left:0;top:0;bottom:0;width:3px;background:var(--red)}
+
+@media(max-width:900px){
+  html,body{overflow:auto;height:auto}
+  header{height:50px;padding:0 14px 0 11px}
+  .brand-logo{font-size:22px}
+  .brand-divider{margin:0 10px}
+  .hp{padding:0 10px;gap:5px}
+  .hp-v{font-size:15px}
+  .app{position:static;display:block;padding-top:50px;padding-bottom:calc(60px + var(--safe-b));overflow:visible;height:auto}
+  .sidebar{display:block;border-right:none;padding-bottom:0}
+  .stabs{display:none}
+  .spanel{display:none;padding:12px 12px 0}
+  .spanel.on{display:block}
+  .fscroll{padding:0}
+  .calc-btn{width:100%;margin:0 0 8px!important}
+  .add-btn{width:100%;margin:8px 0 14px!important}
+  .main{padding:12px;overflow:visible;height:auto;gap:10px}
+  .stats{grid-template-columns:repeat(3,1fr);gap:6px}
+  .sc-v{font-size:19px}
+  .thead{display:none}
+  .tbody{border:none;overflow:visible;background:transparent}
+  .tbody-wrap{overflow:visible;min-height:unset}
+  
+  /* Compact mobile job cards - only date, client, miles */
+  .trow{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);margin-bottom:6px;background:var(--surf)}
+  .trow:last-child{border-bottom:1px solid var(--border);margin-bottom:0}
+  .td{padding:0;display:none}
+  .td-date{display:block;font-size:11px;color:var(--muted2);min-width:70px}
+  .td-client{display:block;flex:1;padding:0 10px}
+  .td-client .client-name{font-size:14px;font-weight:500}
+  .td-client .trip-badge{display:none}
+  .td-miles{display:block;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--good);min-width:50px;text-align:right}
+  .row-acts{display:flex;gap:2px;margin-left:8px}
+  
+  .m-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px}
+  .m-mid{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+  .m-bot{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;border-top:1px solid var(--border2);padding-top:9px}
+  .m-label{font-size:.55rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:2px}
+  .field input,.field select,.field textarea{font-size:16px}
+  
+  /* Bottom nav */
+  .bnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:200;padding-bottom:var(--safe-b)}
+  .bntab{flex:1;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.55rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:color .15s}
+  .bntab.on{color:var(--white)}
+  .bntab .bni{font-size:20px;line-height:1}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-accent"></div>
+  <div class="login-box">
+    <div class="login-logo">Highland<em>Media</em></div>
+    <div class="login-sub">Mileage Tracker</div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="loginUser" autocomplete="username" autocapitalize="none" spellcheck="false">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPass" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="loginErr">Invalid username or password</div>
+  </div>
+</div>
+
+<div class="accent-line"></div>
+
+<header>
+  <div class="brand">
+    <a href="/" class="brand-logo">HIGHLANDMEDIA</a>
+    <div class="brand-divider"></div>
+    <div class="brand-sub">Mileage Tracker</div>
+  </div>
+  <div class="hpills">
+    <div class="hp">
+      <div class="hp-v good" id="hdr-miles">0</div>
+      <div class="hp-l">MI</div>
+    </div>
+    <div class="hp">
+      <div class="hp-v" id="hdr-jobs">0</div>
+      <div class="hp-l">JOBS</div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="stabs">
+      <div class="stab on" onclick="switchTab('add')">+ ADD JOB</div>
+      <div class="stab" onclick="switchTab('dashboard')">DASHBOARD</div>
+    </div>
+    
+    <!-- Add Job Panel -->
+    <div class="spanel on" id="panel-add">
+      <div class="fscroll">
+        
+        <!-- Client Name -->
+        <div class="field">
+          <label>Client / Job Name <span class="req">*</span></label>
+          <div class="name-row">
+            <div class="autocomplete-wrap" style="flex:1">
+              <input type="text" id="f-client" placeholder="e.g. Eastman Theatre" autocomplete="off"
+                oninput="onClientInput()" onfocus="onClientInput()" onkeydown="handleAutocompleteKeys(event)">
+              <div class="autocomplete-dropdown" id="autocomplete-dropdown"></div>
+            </div>
+            <button type="button" class="star-btn" onclick="showAllSaved()" title="Show saved routes">★</button>
+          </div>
+          <div id="saved-routes-wrap" style="display:none;margin-top:6px">
+            <label style="font-size:.55rem;color:var(--good);display:block;margin-bottom:5px">SAVED ROUTES — TAP TO LOAD</label>
+            <select id="saved-routes-select" onchange="onSavedRouteSelect()" style="background:var(--surf2)">
+              <option value="">— select a saved route —</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Date & Trips -->
+        <div class="frow">
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="field">
+            <label>No. of Trips</label>
+            <input type="number" id="f-trips" value="1" min="1" max="99">
+          </div>
+        </div>
+
+        <!-- Route -->
+        <div class="field">
+          <label>Route</label>
+          <div id="stops-list">
+            <div class="stop-row">
+              <span class="stop-badge">A</span>
+              <input type="text" id="stop-origin" value="Office" placeholder="Origin">
+            </div>
+            <div class="stop-row" id="dest-row">
+              <span class="stop-badge">B</span>
+              <input type="text" id="stop-dest" placeholder="Destination">
+            </div>
+          </div>
+          <button class="add-stop-btn" onclick="addStop()">+ ADD INTERMEDIATE STOP</button>
+        </div>
+
+        <!-- Trip Type -->
+        <div class="field">
+          <label>Trip Type</label>
+          <div class="trip-btns">
+            <button class="trip-btn on" id="tt-round" onclick="setTripType('round')">↩ ROUND TRIP</button>
+            <button class="trip-btn" id="tt-one" onclick="setTripType('one')">→ ONE WAY</button>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview" id="preview">
+          <div class="preview-miles">
+            <input type="number" id="preview-miles-input" step="0.1" min="0" oninput="onMilesEdit()">
+            <span class="preview-unit">mi</span>
+            <span class="preview-tag" id="preview-tag"></span>
+          </div>
+          <div class="preview-detail" id="preview-detail"></div>
+        </div>
+
+        <!-- Notes -->
+        <div class="field">
+          <label>Notes</label>
+          <textarea id="f-notes" placeholder="Setup + strike, venue details…"></textarea>
+        </div>
+
+        <button class="calc-btn" onclick="calcMileage()" style="margin:0 0 8px">CALCULATE MILEAGE</button>
+        <button class="add-btn" id="add-btn" disabled onclick="addJob()" style="margin:8px 0 16px">ADD TO LOG</button>
+
+      </div>
+    </div>
+
+    <!-- Dashboard Panel -->
+    <div class="spanel" id="panel-dashboard">
+      <div class="fscroll" style="padding:18px">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px">
+          <div class="sc">
+            <div class="sc-v good" id="d-total-mi">0</div>
+            <div class="sc-l">TOTAL MILES</div>
+          </div>
+          <div class="sc">
+            <div class="sc-v" id="d-total-jobs">0</div>
+            <div class="sc-l">TOTAL JOBS</div>
+          </div>
+          <div class="sc">
+            <div class="sc-v" id="d-avg-mi">0</div>
+            <div class="sc-l">AVG MI/JOB</div>
+          </div>
+          <div class="sc">
+            <div class="sc-v red" id="d-reimb">$0</div>
+            <div class="sc-l">EST. REIMB</div>
+          </div>
+        </div>
+        
+        <div style="background:var(--surf);border:1px solid var(--border);padding:14px;margin-bottom:12px">
+          <div style="font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px">MILES BY MONTH</div>
+          <canvas id="chart-monthly" style="max-height:180px"></canvas>
+        </div>
+
+        <div style="background:var(--surf);border:1px solid var(--border);padding:14px;margin-bottom:12px">
+          <div style="font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px">TRIP TYPE BREAKDOWN</div>
+          <canvas id="chart-triptype" style="max-height:180px"></canvas>
+        </div>
+
+        <div style="background:var(--surf);border:1px solid var(--border);padding:14px">
+          <div style="font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px">TOP CLIENTS</div>
+          <div id="top-clients-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <!-- Stats -->
+    <div class="stats">
+      <div class="sc">
+        <div class="sc-v good" id="stat-miles">0.0</div>
+        <div class="sc-l">Total Miles</div>
+      </div>
+      <div class="sc">
+        <div class="sc-v" id="stat-jobs">0</div>
+        <div class="sc-l">Jobs</div>
+      </div>
+      <div class="sc">
+        <div class="sc-v red" id="stat-reimb">$0</div>
+        <div class="sc-l">Est. Reimb.</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="cbtn" onclick="exportCSV()">↓ CSV</button>
+      <button class="cbtn" onclick="clearAll()">CLEAR ALL</button>
+    </div>
+
+    <!-- Table -->
+    <div class="thead">
+      <div class="th">DATE</div>
+      <div class="th">CLIENT / JOB</div>
+      <div class="th">ROUTE</div>
+      <div class="th">MILES</div>
+      <div class="th">NOTES</div>
+      <div class="th"></div>
+    </div>
+
+    <div class="tbody-wrap">
+      <div class="tbody" id="tbody">
+        <div class="empty">
+          <div class="empty-i">📍</div>
+          <h3>NO JOBS LOGGED YET</h3>
+          <p>Add your first mileage entry to get started</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-hdr">Edit Job</div>
+    <input type="hidden" id="edit-id">
+    <div class="field">
+      <label>Client / Job Name</label>
+      <input type="text" id="edit-client">
+    </div>
+    <div class="frow">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="edit-date">
+      </div>
+      <div class="field">
+        <label>Miles</label>
+        <input type="number" id="edit-miles" step="0.1" min="0">
+      </div>
+    </div>
+    <div class="frow">
+      <div class="field">
+        <label>Trip Type</label>
+        <select id="edit-triptype">
+          <option value="round">Round Trip</option>
+          <option value="one">One Way</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>No. of Trips</label>
+        <input type="number" id="edit-trips" min="1" max="99">
+      </div>
+    </div>
+    <div class="field">
+      <label>Destination</label>
+      <input type="text" id="edit-dest">
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="edit-notes"></textarea>
+    </div>
+    <div class="modal-acts">
+      <button class="btn-cancel" onclick="closeEditModal()">CANCEL</button>
+      <button class="btn-save" onclick="saveEdit()">SAVE CHANGES</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav (Mobile) -->
+<div class="bnav">
+  <div class="bntab on" onclick="switchTabMobile('add')">
+    <div class="bni">+</div>
+    <div>ADD</div>
+  </div>
+  <div class="bntab" onclick="switchTabMobile('log')">
+    <div class="bni">📋</div>
+    <div>LOG</div>
+  </div>
+  <div class="bntab" onclick="switchTabMobile('dashboard')">
+    <div class="bni">📊</div>
+    <div>STATS</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const RATE = 0.67;
+let jobs = [];
+let savedClients = {};
+let tripType = 'round';
+let extraStops = 0;
+let lastMiles = null;
+let lastRoute = null;
+let selectedAutocompleteIndex = -1;
+let activeTab = 'add';
+let charts = {};
+
+document.getElementById('f-date').valueAsDate = new Date();
+
+// Load data
+async function loadAll() {
+    try {
+        const [jobsRes, routesRes] = await Promise.all([
+            fetch('/api/jobs'),
+            fetch('/api/saved-routes')
+        ]);
+        jobs = await jobsRes.json();
+        jobs = jobs.map(normalizeJob);
+        savedClients = await routesRes.json();
+        render();
+    } catch(e) {
+        console.error('Load failed:', e);
+        render();
+    }
+}
+
+function normalizeJob(j) {
+    return {
+        id: j.id,
+        client: j.client,
+        date: j.date,
+        dest: j.dest,
+        route: j.route,
+        miles: j.miles,
+        tripType: j.trip_type || j.tripType || 'round',
+        trips: j.trips,
+        notes: j.notes,
+    };
+}
+
+// API functions
+async function apiAddJob(jobData) {
+    try {
+        const r = await fetch('/api/jobs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                client: jobData.client,
+                date: jobData.date,
+                dest: jobData.dest,
+                route: jobData.route,
+                miles: jobData.miles,
+                trip_type: jobData.tripType,
+                trips: jobData.trips,
+                notes: jobData.notes,
+            })
+        });
+        const saved = await r.json();
+        jobs.unshift(normalizeJob(saved));
+        showToast('JOB ADDED');
+        render();
+    } catch(e) {
+        showToast('SAVE FAILED');
+    }
+}
+
+async function apiDeleteJob(id) {
+    try {
+        await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
+        jobs = jobs.filter(j => j.id !== id);
+        showToast('JOB DELETED');
+        render();
+    } catch(e) {
+        showToast('DELETE FAILED');
+    }
+}
+
+async function apiUpdateJob(id, data) {
+    try {
+        const r = await fetch(`/api/jobs/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                client: data.client, date: data.date, dest: data.dest,
+                route: data.route, miles: data.miles,
+                trip_type: data.tripType, trips: data.trips, notes: data.notes
+            })
+        });
+        const updated = await r.json();
+        const idx = jobs.findIndex(j => j.id === id);
+        if (idx !== -1) jobs[idx] = normalizeJob(updated);
+        showToast('JOB UPDATED');
+        render();
+    } catch(e) {
+        showToast('UPDATE FAILED');
+    }
+}
+
+async function apiSaveClient(job) {
+    const key = `${job.client}||${job.dest || ''}`;
+    savedClients[key] = {
+        client: job.client, dest: job.dest, route: job.route,
+        miles: job.miles, tripType: job.tripType, trips: job.trips,
+    };
+    try {
+        await fetch('/api/saved-routes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                key, client: job.client, dest: job.dest, route: job.route,
+                miles: job.miles, tripType: job.tripType, trips: job.trips,
+            })
+        });
+    } catch(e) {}
+}
+
+// Autocomplete
+function onClientInput() {
+    const val = document.getElementById('f-client').value.trim();
+    const matches = getMatches(val);
+    showAutocomplete(matches);
+    resetCalc();
+}
+
+function showAllSaved() {
+    const keys = Object.keys(savedClients);
+    const wrap = document.getElementById('saved-routes-wrap');
+    const sel = document.getElementById('saved-routes-select');
+    if (!keys.length) {
+        showToast('NO SAVED ROUTES YET');
+        return;
+    }
+    populateSavedSelect(sel, keys);
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
+function showAutocomplete(keys) {
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    selectedAutocompleteIndex = -1;
+    
+    if (!keys || keys.length === 0) {
+        dropdown.classList.remove('show');
+        return;
+    }
+    
+    dropdown.innerHTML = '';
+    keys.forEach((key, index) => {
+        const sc = savedClients[key];
+        const item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        item.textContent = sc.client || key.split('||')[0];
+        item.dataset.key = key;
+        item.dataset.index = index;
+        
+        item.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            applyClient(key);
+            hideAutocomplete();
+        });
+        
+        item.addEventListener('mouseenter', function() {
+            selectedAutocompleteIndex = index;
+            updateAutocompleteSelection();
+        });
+        
+        dropdown.appendChild(item);
+    });
+    
+    dropdown.classList.add('show');
+}
+
+function hideAutocomplete() {
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    dropdown.classList.remove('show');
+    selectedAutocompleteIndex = -1;
+}
+
+function updateAutocompleteSelection() {
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    items.forEach((item, index) => {
+        item.classList.toggle('selected', index === selectedAutocompleteIndex);
+    });
+}
+
+function handleAutocompleteKeys(e) {
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    if (!dropdown.classList.contains('show')) return;
+    
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (items.length === 0) return;
+    
+    switch(e.key) {
+        case 'ArrowDown':
+            e.preventDefault();
+            selectedAutocompleteIndex = Math.min(selectedAutocompleteIndex + 1, items.length - 1);
+            updateAutocompleteSelection();
+            items[selectedAutocompleteIndex]?.scrollIntoView({ block: 'nearest' });
+            break;
+            
+        case 'ArrowUp':
+            e.preventDefault();
+            selectedAutocompleteIndex = Math.max(selectedAutocompleteIndex - 1, 0);
+            updateAutocompleteSelection();
+            items[selectedAutocompleteIndex]?.scrollIntoView({ block: 'nearest' });
+            break;
+            
+        case 'Enter':
+            if (selectedAutocompleteIndex >= 0 && selectedAutocompleteIndex < items.length) {
+                e.preventDefault();
+                const key = items[selectedAutocompleteIndex].dataset.key;
+                applyClient(key);
+                hideAutocomplete();
+            }
+            break;
+            
+        case 'Escape':
+            e.preventDefault();
+            hideAutocomplete();
+            break;
+    }
+}
+
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    const autocompleteWrap = document.querySelector('.autocomplete-wrap');
+    const starBtn = e.target.closest('.star-btn');
+    
+    if (starBtn || (autocompleteWrap && autocompleteWrap.contains(e.target))) {
+        return;
+    }
+    
+    if (dropdown && dropdown.classList.contains('show')) {
+        hideAutocomplete();
+    }
+});
+
+function populateSavedSelect(sel, keys) {
+    sel.innerHTML = '<option value="">— select a saved route —</option>';
+    keys.forEach(key => {
+        const sc = savedClients[key];
+        const dest = sc.dest ? ` → ${sc.dest}` : '';
+        const tripLabel = sc.tripType === 'round' ? 'round' : 'one way';
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = `${sc.client || key.split('||')[0]}  ·  ${sc.miles.toFixed(1)} mi  ·  ${tripLabel}${dest}`;
+        sel.appendChild(opt);
+    });
+}
+
+function onSavedRouteSelect() {
+    const key = document.getElementById('saved-routes-select').value;
+    if (!key) return;
+    applyClient(key);
+}
+
+function getMatches(query) {
+    const q = query.toLowerCase().trim();
+    if (!q) return [];
+    return Object.keys(savedClients).filter(k => {
+        const clientName = savedClients[k].client || k.split('||')[0];
+        return clientName.toLowerCase().startsWith(q);
+    }).sort();
+}
+
+function applyClient(key) {
+    const sc = savedClients[key];
+    const clientInput = document.getElementById('f-client');
+    clientInput.value = sc.client || key.split('||')[0];
+    document.getElementById('stop-dest').value = sc.dest || '';
+    document.getElementById('f-trips').value = sc.trips || 1;
+    setTripType(sc.tripType || 'round');
+    lastMiles = sc.miles;
+    lastRoute = sc.route;
+    const trips = sc.trips || 1;
+    const mult = sc.tripType === 'round' ? 2 : 1;
+    document.getElementById('preview-miles-input').value = sc.miles.toFixed(1);
+    document.getElementById('preview-tag').textContent = '← edit if needed';
+    document.getElementById('preview-detail').innerHTML =
+        `One-way: <span class="hi">${(sc.miles / mult / trips).toFixed(1)} mi</span>  ×  ` +
+        `${mult === 2 ? 'round trip' : 'one way'}` +
+        (trips > 1 ? `  ×  <span class="hi">${trips} trips</span>` : '') +
+        `<br>Route: ${sc.route}<br><span style="color:var(--good);font-size:10px">✓ loaded from saved route</span>`;
+    document.getElementById('preview').classList.add('on');
+    document.getElementById('add-btn').disabled = false;
+    document.getElementById('saved-routes-wrap').style.display = 'none';
+}
+
+// Trip type
+function setTripType(t) {
+    tripType = t;
+    document.getElementById('tt-round').classList.toggle('on', t === 'round');
+    document.getElementById('tt-one').classList.toggle('on', t === 'one');
+    resetCalc();
+}
+
+// Stops
+const LABELS = ['A','B','C','D','E','F'];
+function addStop() {
+    if (extraStops >= 3) return;
+    const destRow = document.getElementById('dest-row');
+    const idx = extraStops;
+    const row = document.createElement('div');
+    row.className = 'stop-row';
+    row.id = 'extra-row-' + idx;
+    row.innerHTML = `
+        <span class="stop-badge">${LABELS[1 + idx]}</span>
+        <input type="text" id="extra-${idx}" placeholder="Intermediate stop">
+        <button class="stop-remove" onclick="removeStop(${idx})">×</button>
+    `;
+    document.getElementById('stops-list').insertBefore(row, destRow);
+    extraStops++;
+    refreshBadges();
+    resetCalc();
+}
+
+function removeStop(idx) {
+    document.getElementById('extra-row-' + idx)?.remove();
+    extraStops--;
+    refreshBadges();
+    resetCalc();
+}
+
+function refreshBadges() {
+    const rows = document.querySelectorAll('#stops-list .stop-row');
+    rows.forEach((r, i) => r.querySelector('.stop-badge').textContent = LABELS[i]);
+}
+
+// Geocode
+const ALIASES = { 'office': '288 Sanford St, Rochester, NY' };
+async function geocode(addr) {
+    const resolved = ALIASES[addr.toLowerCase().trim()] || addr;
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(resolved)}&limit=1`, { headers: {'Accept-Language':'en'} });
+    const d = await r.json();
+    if (!d.length) throw new Error(`Not found: "${addr}"`);
+    return { lat: +d[0].lat, lon: +d[0].lon, label: addr.toLowerCase().trim() === 'office' ? 'Office' : d[0].display_name.split(',').slice(0,2).join(',').trim() };
+}
+
+async function routeMiles(pts) {
+    const coords = pts.map(p => `${p.lon},${p.lat}`).join(';');
+    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`);
+    const d = await r.json();
+    if (d.code !== 'Ok') throw new Error('Routing failed');
+    return d.routes[0].distance * 0.000621371;
+}
+
+async function calcMileage() {
+    const origin = document.getElementById('stop-origin').value.trim();
+    const dest = document.getElementById('stop-dest').value.trim();
+    if (!origin || !dest) {
+        showToast('ENTER ORIGIN & DESTINATION');
+        return;
+    }
+    document.getElementById('add-btn').disabled = true;
+    document.getElementById('preview').classList.remove('on');
+    try {
+        const addrs = [origin];
+        for (let i = 0; i < extraStops; i++) {
+            const v = document.getElementById('extra-' + i)?.value.trim();
+            if (v) addrs.push(v);
+        }
+        addrs.push(dest);
+        const pts = await Promise.all(addrs.map(geocode));
+        const oneway = await routeMiles(pts);
+        const trips = Math.max(1, parseInt(document.getElementById('f-trips').value) || 1);
+        const mult = tripType === 'round' ? 2 : 1;
+        const total = oneway * mult * trips;
+        lastMiles = total;
+        lastRoute = pts.map(p => p.label).join(' → ');
+        document.getElementById('preview-miles-input').value = total.toFixed(1);
+        document.getElementById('preview-tag').textContent = '';
+        document.getElementById('preview-detail').innerHTML =
+            `One-way: <span class="hi">${oneway.toFixed(1)} mi</span>  ×  ` +
+            `${mult === 2 ? 'round trip' : 'one way'}` +
+            (trips > 1 ? `  ×  <span class="hi">${trips} trips</span>` : '') +
+            `<br>Route: ${pts.map(p=>p.label).join(' → ')}`;
+        document.getElementById('preview').classList.add('on');
+        document.getElementById('add-btn').disabled = false;
+    } catch(e) {
+        lastRoute = [
+            document.getElementById('stop-origin').value.trim(),
+            document.getElementById('stop-dest').value.trim()
+        ].filter(Boolean).join(' → ');
+        document.getElementById('preview-miles-input').value = '';
+        document.getElementById('preview-tag').textContent = '';
+        document.getElementById('preview-detail').innerHTML =
+            `<span style="color:var(--muted)">Address not found — enter miles above manually</span>`;
+        document.getElementById('preview').classList.add('on');
+        document.getElementById('add-btn').disabled = true;
+    }
+}
+
+function onMilesEdit() {
+    const miles = parseFloat(document.getElementById('preview-miles-input').value);
+    const addBtn = document.getElementById('add-btn');
+    
+    if (miles && miles > 0) {
+        lastMiles = miles;
+        addBtn.disabled = false;
+        document.getElementById('preview-tag').textContent = '← manually edited';
+    } else {
+        addBtn.disabled = true;
+    }
+}
+
+function addJob() {
+    const inputMiles = parseFloat(document.getElementById('preview-miles-input').value);
+    if (!inputMiles || inputMiles <= 0) return;
+    lastMiles = inputMiles;
+    const trips = Math.max(1, parseInt(document.getElementById('f-trips').value) || 1);
+    const client = document.getElementById('f-client').value.trim() || '—';
+    const dest = document.getElementById('stop-dest').value.trim();
+    const job = {
+        client, date: document.getElementById('f-date').value,
+        dest, route: lastRoute, miles: lastMiles,
+        tripType, trips, notes: document.getElementById('f-notes').value.trim(),
+    };
+    if (client !== '—') apiSaveClient(job);
+    apiAddJob(job);
+    resetForm();
+}
+
+function deleteJob(id) {
+    if (!confirm('Delete this job?')) return;
+    apiDeleteJob(id);
+}
+
+function clearAll() {
+    if (!jobs.length || !confirm('Clear all jobs? This cannot be undone.')) return;
+    Promise.all(jobs.map(j => fetch(`/api/jobs/${j.id}`, { method: 'DELETE' })))
+        .then(() => { jobs = []; render(); showToast('ALL JOBS CLEARED'); });
+}
+
+function resetForm() {
+    document.getElementById('f-client').value = '';
+    document.getElementById('saved-routes-wrap').style.display = 'none';
+    document.getElementById('saved-routes-select').value = '';
+    document.getElementById('f-notes').value = '';
+    document.getElementById('f-trips').value = '1';
+    document.getElementById('stop-dest').value = '';
+    document.getElementById('stop-origin').value = 'Office';
+    for (let i = 0; i < extraStops; i++) document.getElementById('extra-row-' + i)?.remove();
+    extraStops = 0;
+    refreshBadges();
+    setTripType('round');
+    resetCalc();
+    document.getElementById('f-date').valueAsDate = new Date();
+}
+
+function resetCalc() {
+    lastMiles = null;
+    lastRoute = null;
+    document.getElementById('preview').classList.remove('on');
+    document.getElementById('preview-miles-input').value = '';
+    document.getElementById('preview-tag').textContent = '';
+    document.getElementById('add-btn').disabled = true;
+}
+
+// Render
+function render() {
+    const tbody = document.getElementById('tbody');
+    const totalMi = jobs.reduce((s,j) => s + j.miles, 0);
+    const reimb = totalMi * RATE;
+    
+    document.getElementById('stat-miles').textContent = totalMi.toFixed(1);
+    document.getElementById('stat-jobs').textContent = jobs.length;
+    document.getElementById('stat-reimb').textContent = '$' + reimb.toFixed(0);
+    document.getElementById('hdr-miles').textContent = totalMi.toFixed(1);
+    document.getElementById('hdr-jobs').textContent = jobs.length;
+    
+    if (!jobs.length) {
+        tbody.innerHTML = `
+            <div class="empty">
+                <div class="empty-i">📍</div>
+                <h3>NO JOBS LOGGED YET</h3>
+                <p>Add your first mileage entry to get started</p>
+            </div>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = '';
+    jobs.forEach(j => {
+        const dateStr = j.date ? new Date(j.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+        const tripLabel = j.tripType === 'round'
+            ? (j.trips > 1 ? `${j.trips}× round` : 'round trip')
+            : (j.trips > 1 ? `${j.trips}× one way` : 'one way');
+        const badgeClass = j.tripType === 'round' ? 'trip-badge tb-round' : 'trip-badge tb-one';
+        
+        const row = document.createElement('div');
+        row.className = 'trow';
+        row.innerHTML = `
+            <div class="td td-date">${dateStr}</div>
+            <div class="td td-client">
+                <div class="client-name">${j.client}</div>
+                <div class="${badgeClass}">${tripLabel}</div>
+            </div>
+            <div class="td td-route">${j.route||'—'}</div>
+            <div class="td td-miles">${j.miles.toFixed(1)}</div>
+            <div class="td td-notes">${j.notes||'—'}</div>
+            <div class="td row-acts">
+                <button class="ibtn" onclick="openEditModal(${j.id})" title="Edit">✎</button>
+                <button class="ibtn db" onclick="deleteJob(${j.id})" title="Delete">×</button>
+            </div>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    if (activeTab === 'dashboard') renderDashboard();
+}
+
+function exportCSV() {
+    window.location.href = '/api/export';
+}
+
+// Edit modal
+function openEditModal(id) {
+    const j = jobs.find(j => j.id === id);
+    if (!j) return;
+    document.getElementById('edit-id').value = id;
+    document.getElementById('edit-client').value = j.client || '';
+    document.getElementById('edit-date').value = j.date || '';
+    document.getElementById('edit-miles').value = j.miles?.toFixed(1) || '';
+    document.getElementById('edit-triptype').value = j.tripType || 'round';
+    document.getElementById('edit-trips').value = j.trips || 1;
+    document.getElementById('edit-dest').value = j.dest || '';
+    document.getElementById('edit-notes').value = j.notes || '';
+    document.getElementById('edit-modal').classList.add('on');
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('on');
+}
+
+function saveEdit() {
+    const id = parseInt(document.getElementById('edit-id').value);
+    const data = {
+        client:   document.getElementById('edit-client').value.trim(),
+        date:     document.getElementById('edit-date').value,
+        miles:    parseFloat(document.getElementById('edit-miles').value),
+        tripType: document.getElementById('edit-triptype').value,
+        trips:    parseInt(document.getElementById('edit-trips').value) || 1,
+        dest:     document.getElementById('edit-dest').value.trim(),
+        notes:    document.getElementById('edit-notes').value.trim(),
+    };
+    const existing = jobs.find(j => j.id === id);
+    if (existing) data.route = existing.route;
+    closeEditModal();
+    apiUpdateJob(id, data);
+    if (data.client && data.client !== '—') apiSaveClient(data);
+}
+
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+
+// Tab switching
+function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.stab').forEach(b => {
+        b.classList.toggle('on', 
+            (tab === 'add' && b.textContent.includes('ADD')) ||
+            (tab === 'dashboard' && b.textContent.includes('DASHBOARD'))
+        );
+    });
+    document.getElementById('panel-add').classList.toggle('on', tab === 'add');
+    document.getElementById('panel-dashboard').classList.toggle('on', tab === 'dashboard');
+    if (tab === 'dashboard') renderDashboard();
+}
+
+// Mobile tab switching
+function switchTabMobile(tab) {
+    activeTab = tab;
+    
+    // Update bottom nav
+    document.querySelectorAll('.bntab').forEach(b => {
+        const text = b.textContent.toLowerCase();
+        b.classList.toggle('on',
+            (tab === 'add' && text.includes('add')) ||
+            (tab === 'log' && text.includes('log')) ||
+            (tab === 'dashboard' && text.includes('stats'))
+        );
+    });
+    
+    // Show/hide panels
+    const isSidebar = tab === 'add' || tab === 'dashboard';
+    const isMain = tab === 'log';
+    
+    document.querySelector('.sidebar').style.display = isSidebar ? 'block' : 'none';
+    document.querySelector('.main').style.display = isMain ? 'flex' : 'none';
+    
+    // Update sidebar panels
+    document.getElementById('panel-add').classList.toggle('on', tab === 'add');
+    document.getElementById('panel-dashboard').classList.toggle('on', tab === 'dashboard');
+    
+    if (tab === 'dashboard') renderDashboard();
+}
+
+// Dashboard
+const CHART_DEFAULTS = {
+    color: 'rgba(232,228,221,0.38)',
+    borderColor: 'rgba(255,255,255,0.07)',
+    font: { family: "'Barlow'", size: 11 },
+};
+Chart.defaults.color = CHART_DEFAULTS.color;
+Chart.defaults.font = CHART_DEFAULTS.font;
+
+function destroyChart(id) {
+    if (charts[id]) {
+        charts[id].destroy();
+        delete charts[id];
+    }
+}
+
+function renderDashboard() {
+    if (!jobs.length) return;
+    
+    const totalMi = jobs.reduce((s,j) => s + j.miles, 0);
+    document.getElementById('d-total-mi').textContent = totalMi.toFixed(1);
+    document.getElementById('d-total-jobs').textContent = jobs.length;
+    document.getElementById('d-avg-mi').textContent = (totalMi / jobs.length).toFixed(1);
+    document.getElementById('d-reimb').textContent = '$' + (totalMi * RATE).toFixed(0);
+    
+    // Miles by month
+    const byMonth = {};
+    jobs.forEach(j => {
+        if (!j.date) return;
+        const key = j.date.slice(0, 7);
+        byMonth[key] = (byMonth[key] || 0) + j.miles;
+    });
+    const monthKeys = Object.keys(byMonth).sort();
+    const monthLabels = monthKeys.map(k => {
+        const [y, m] = k.split('-');
+        return new Date(+y, +m - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    });
+    
+    destroyChart('monthly');
+    charts['monthly'] = new Chart(document.getElementById('chart-monthly'), {
+        type: 'bar',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                data: monthKeys.map(k => +byMonth[k].toFixed(1)),
+                backgroundColor: 'rgba(58,170,116,0.7)',
+                borderColor: 'rgba(58,170,116,1)',
+                borderWidth: 1,
+                borderRadius: 2,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 10 } } },
+                y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 10 } } }
+            },
+            responsive: true,
+            maintainAspectRatio: true,
+        }
+    });
+    
+    // Trip type
+    const roundMi = jobs.filter(j => j.tripType === 'round').reduce((s,j) => s + j.miles, 0);
+    const oneMi   = jobs.filter(j => j.tripType !== 'round').reduce((s,j) => s + j.miles, 0);
+    destroyChart('triptype');
+    charts['triptype'] = new Chart(document.getElementById('chart-triptype'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Round Trip', 'One Way'],
+            datasets: [{
+                data: [+roundMi.toFixed(1), +oneMi.toFixed(1)],
+                backgroundColor: ['rgba(58,170,116,0.8)', 'rgba(212,146,42,0.7)'],
+                borderColor: ['#3aaa74', '#d4922a'],
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { padding: 14, font: { size: 11 }, color: 'rgba(232,228,221,0.38)' }
+                }
+            },
+            cutout: '65%',
+            responsive: true,
+            maintainAspectRatio: true,
+        }
+    });
+    
+    // Top clients
+    const byClient = {};
+    jobs.forEach(j => { byClient[j.client] = (byClient[j.client] || 0) + j.miles; });
+    const sorted = Object.entries(byClient).sort((a,b) => b[1] - a[1]).slice(0, 8);
+    const maxMi = sorted[0]?.[1] || 1;
+    const list = document.getElementById('top-clients-list');
+    list.innerHTML = '';
+    sorted.forEach(([name, mi]) => {
+        const pct = (mi / maxMi * 100).toFixed(1);
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px';
+        div.innerHTML = `
+            <div style="font-size:12px;color:var(--white);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</div>
+            <div style="flex:2;background:var(--surf3);height:3px;position:relative">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:var(--good);transition:width .4s"></div>
+            </div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--muted);white-space:nowrap">${mi.toFixed(1)} MI</div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('on');
+    setTimeout(() => toast.classList.remove('on'), 2000);
+}
+
+// Login
+async function doLogin(){
+  const user=document.getElementById('loginUser').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const btn=document.querySelector('.login-btn');
+  btn.textContent='Signing In…';btn.disabled=true;
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})});
+    if(r.ok){
+      document.getElementById('loginScreen').classList.add('out');
+      document.getElementById('loginErr').classList.remove('on');
+      await loadAll();
+    } else {
+      document.getElementById('loginErr').classList.add('on');
+      document.getElementById('loginPass').value='';
+      document.getElementById('loginPass').focus();
+    }
+  }catch(e){
+    document.getElementById('loginErr').classList.add('on');
+  }
+  btn.textContent='Sign In';btn.disabled=false;
+}
+
+async function doLogout(){
+  await fetch('/api/logout',{method:'POST'});
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginScreen').classList.remove('out');
+  jobs = [];
+  savedClients = {};
+  render();
+}
+
+// Allow Enter key on login form
+document.getElementById('loginUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPass').focus();});
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+// Init
+async function init(){
+  try{
+    // Check if authenticated
+    const authCheck = await fetch('/api/check-auth');
+    const { authenticated } = await authCheck.json();
+    
+    if (authenticated) {
+      // Already logged in, hide login screen and load data
+      document.getElementById('loginScreen').classList.add('out');
+      await loadAll();
+    } else {
+      // Not authenticated, show login screen
+      document.getElementById('loginScreen').classList.remove('out');
+    }
+  }catch(e){
+    // Error checking auth, show login screen
+    document.getElementById('loginScreen').classList.remove('out');
+  }
+}
+init();
+</script>
+</body>
+</html>
