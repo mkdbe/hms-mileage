@@ -23,6 +23,3 @@ Thumbs.db
 *.bak
 *.bak2
 *.backup
-
-# PM2
-ecosystem.config.js
