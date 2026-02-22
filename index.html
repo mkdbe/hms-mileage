@@ -260,6 +260,7 @@ header{
 .login-err.on{display:block}
 .login-accent{position:fixed;left:0;top:0;bottom:0;width:3px;background:var(--red)}
 
+.bnav{display:none}
 /* Dashboard */
 .dash-section{margin-bottom:18px}
 
@@ -409,7 +410,7 @@ header{
   <div class="sidebar">
     <div class="stabs">
       <div class="stab on" onclick="switchTab('add')">+ ADD JOB</div>
-      <div class="stab" onclick="switchTab('pending')">⏳<span class="pend-badge" id="pend-badge-desk"></span></div>
+      <div class="stab" onclick="switchTab('pending')">PENDING <span class="pend-badge" id="pend-badge-desk"></span></div>
       <div class="stab" onclick="switchTab('dashboard')">DASHBOARD</div>
     </div>
     
@@ -700,7 +701,7 @@ header{
   </div>
   <div class="bntab" onclick="switchTabMobile('pending')" style="position:relative">
     <div class="bni">⏳</div>
-    <div>PENDING</div>
+    <div>REVIEW</div>
     <span class="pend-badge mobile" id="pend-badge-mob"></span>
   </div>
   <div class="bntab" onclick="switchTabMobile('log')">
@@ -1656,20 +1657,17 @@ function renderPending() {
         // Build client field — dropdown for unmatched, text input for matched
         let clientField;
         if (isUnmatched) {
-            const options = knownClients.map(c => 
-                `<option value="${c.replace(/"/g,'&quot;')}" ${c === p.client ? 'selected' : ''}>${c}</option>`
-            ).join('');
             clientField = `
-                <select onchange="onPendingClientSelect(${p.id}, this.value)">
-                    <option value="">— select client —</option>
-                    ${options}
-                    <option value="__new__">+ NEW CLIENT</option>
-                </select>
-                <input type="text" value="${(p.client||'').replace(/"/g,'&quot;')}" 
-                    id="pend-client-input-${p.id}"
-                    onchange="updatePending(${p.id},'client',this.value)"
-                    style="margin-top:3px"
-                    placeholder="Or type new name">
+                <div style="position:relative">
+                    <input type="text" value="${(p.client||'').replace(/"/g,'&quot;')}"
+                        id="pend-client-input-${p.id}"
+                        oninput="filterPendingClients(${p.id}, this.value)"
+                        onfocus="filterPendingClients(${p.id}, this.value)"
+                        onchange="updatePending(${p.id},'client',this.value)"
+                        autocomplete="off"
+                        placeholder="Type to search clients...">
+                    <div class="pc-dropdown" id="pend-client-dd-${p.id}"></div>
+                </div>
             `;
         } else {
             clientField = `<input type="text" value="${(p.client||'').replace(/"/g,'&quot;')}" onchange="updatePending(${p.id},'client',this.value)">`;
@@ -1713,6 +1711,38 @@ function renderPending() {
     loadPendingCount();
 }
 
+
+function filterPendingClients(id, query) {
+    const dd = document.getElementById('pend-client-dd-' + id);
+    if (!dd) return;
+    const q = query.toLowerCase().trim();
+    if (!q) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
+    const matches = knownClients.filter(c => c.toLowerCase().includes(q));
+    let html = matches.map(c => '<div onclick="selectPendingClient(' + id + ',\'' + c.replace(/'/g,'') + '\')">' + c + '</div>').join('');
+    html += '<div class="pc-new" onclick="selectPendingClient(' + id + ',\'' + query.replace(/'/g,'') + '\')">+ Use "' + query + '"</div>';
+    dd.innerHTML = html;
+    dd.classList.add('open');
+}
+async function selectPendingClient(id, value) {
+    const input = document.getElementById('pend-client-input-' + id);
+    if (input) input.value = value;
+    const dd = document.getElementById('pend-client-dd-' + id);
+    if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+    await updatePending(id, 'client', value);
+    try {
+        const r = await fetch('/api/jobs');
+        const allJobs = await r.json();
+        const clientJobs = allJobs.filter(j => j.client === value && j.miles > 0);
+        if (clientJobs.length > 0) {
+            const avgMiles = +(clientJobs.reduce((s,j) => s + j.miles, 0) / clientJobs.length).toFixed(1);
+            await updatePending(id, 'miles', avgMiles);
+            const latest = clientJobs[0];
+            if (latest.route) await updatePending(id, 'route', latest.route);
+        }
+    } catch(e) {}
+    await loadPending();
+}
+document.addEventListener('click', function(e) { if (!e.target.closest('.pc-dropdown') && !e.target.matches('[id^="pend-client-input"]')) document.querySelectorAll('.pc-dropdown').forEach(d => { d.classList.remove('open'); d.innerHTML = ''; }); });
 async function onPendingClientSelect(id, value) {
     if (value === '__new__') {
         // Focus the text input for manual entry
