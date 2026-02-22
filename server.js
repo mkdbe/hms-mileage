@@ -92,7 +92,7 @@ app.use(express.static(__dirname));
 
 // ── Jobs API ──────────────────────────────────────────────────────────────────
 app.get('/api/jobs', (req, res) => {
-  res.json(db.prepare('SELECT * FROM jobs ORDER BY id DESC').all());
+  res.json(db.prepare('SELECT * FROM jobs ORDER BY date DESC, id DESC').all());
 });
 
 app.post('/api/jobs', (req, res) => {
@@ -123,11 +123,6 @@ app.delete('/api/jobs/:id', (req, res) => {
   const job = db.prepare('SELECT * FROM jobs WHERE id=?').get(req.params.id);
   if (!job) return res.status(404).json({ error: 'Not found' });
   db.prepare('DELETE FROM jobs WHERE id=?').run(req.params.id);
-  res.json({ ok: true });
-});
-
-app.delete('/api/jobs', (req, res) => {
-  db.prepare('DELETE FROM jobs').run();
   res.json({ ok: true });
 });
 
@@ -162,11 +157,27 @@ app.delete('/api/saved-routes/:key', (req, res) => {
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 app.get('/api/stats', (req, res) => {
-  const totalJobs  = db.prepare('SELECT COUNT(*) c FROM jobs').get().c;
-  const totalMiles = db.prepare('SELECT SUM(miles) s FROM jobs').get().s || 0;
-  const byClient   = db.prepare('SELECT client, SUM(miles) miles, COUNT(*) jobs FROM jobs GROUP BY client ORDER BY miles DESC').all();
-  const byMonth    = db.prepare(`SELECT strftime('%Y-%m', date) month, SUM(miles) miles, COUNT(*) jobs FROM jobs WHERE date != '' GROUP BY month ORDER BY month`).all();
-  res.json({ totalJobs, totalMiles, byClient, byMonth });
+  const year = req.query.year; // optional year filter
+  
+  let whereClause = '';
+  let dateWhereClause = '';
+  const params = [];
+  
+  if (year && /^\d{4}$/.test(year)) {
+    whereClause = `WHERE strftime('%Y', date) = ?`;
+    dateWhereClause = `AND strftime('%Y', date) = ?`;
+    params.push(year);
+  }
+  
+  const totalJobs  = db.prepare(`SELECT COUNT(*) c FROM jobs ${whereClause}`).get(...params).c;
+  const totalMiles = db.prepare(`SELECT SUM(miles) s FROM jobs ${whereClause}`).get(...params).s || 0;
+  const byClient   = db.prepare(`SELECT client, SUM(miles) miles, COUNT(*) jobs FROM jobs ${whereClause} GROUP BY client ORDER BY miles DESC`).all(...params);
+  const byMonth    = db.prepare(`SELECT strftime('%Y-%m', date) month, SUM(miles) miles, COUNT(*) jobs FROM jobs WHERE date != '' ${dateWhereClause} GROUP BY month ORDER BY month`).all(...(year ? [year] : []));
+  
+  // Available years in the database
+  const years = db.prepare(`SELECT DISTINCT strftime('%Y', date) y FROM jobs WHERE date != '' ORDER BY y DESC`).all().map(r => r.y).filter(Boolean);
+  
+  res.json({ totalJobs, totalMiles, byClient, byMonth, years });
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
