@@ -6,8 +6,11 @@ const app = express();
 const PORT = 3004;
 
 // ── Credentials ───────────────────────────────────────────────────────────────
-const AUTH_USER = process.env.HMS_USER || 'highland';
-const AUTH_PASS = process.env.HMS_PASS || 'changeme';
+const AUTH_USER = process.env.HMS_USER || 'mdbe';
+const AUTH_PASS = process.env.HMS_PASS || 'picture';
+
+// ── Calendar ICS URL ──────────────────────────────────────────────────────────
+const ICS_URL = process.env.HMS_ICS_URL || 'https://calendar.proton.me/api/calendar/v1/url/2mAFhzOO2ORXp6rl5NppYCF9ND3ya90aZ3-G28Uh31IC3njVmM794GD0MGy1qHhlYmDen7EYopDReAL9iiIyaQ==/calendar.ics?CacheKey=AWcT-m9oDsb7I4bS4EKMYQ%3D%3D&PassphraseKey=QCkPPSLa262wz8ce0Im3NC2vavd_K-J4OsCvWVUMrcw%3D';
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
 const sessions = new Map();
@@ -53,6 +56,34 @@ db.exec(`
     trips      INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT DEFAULT (datetime('now'))
   );
+`);
+
+// Pending jobs table — drop and recreate if schema is wrong
+try {
+  db.prepare('SELECT uid, cal_summary, match_source, status FROM pending_jobs LIMIT 0').run();
+} catch (e) {
+  console.log('[db] Recreating pending_jobs table...');
+  db.exec('DROP TABLE IF EXISTS pending_jobs');
+}
+db.exec(`
+  CREATE TABLE IF NOT EXISTS pending_jobs (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    uid           TEXT DEFAULT '',
+    cal_summary   TEXT DEFAULT '',
+    client        TEXT NOT NULL DEFAULT '',
+    date          TEXT DEFAULT '',
+    dest          TEXT DEFAULT '',
+    route         TEXT DEFAULT '',
+    miles         REAL NOT NULL DEFAULT 0,
+    trip_type     TEXT NOT NULL DEFAULT 'round',
+    trips         INTEGER NOT NULL DEFAULT 1,
+    notes         TEXT DEFAULT '',
+    match_source  TEXT DEFAULT '',
+    status        TEXT DEFAULT 'pending',
+    created_at    TEXT DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_pending_uid ON pending_jobs(uid);
+  CREATE INDEX IF NOT EXISTS idx_pending_status ON pending_jobs(status);
 `);
 
 app.use(express.json());
@@ -156,29 +187,236 @@ app.delete('/api/saved-routes/:key', (req, res) => {
 });
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
+
+app.get('/api/clients', (req, res) => {
+  const clients = getKnownClients();
+  res.json(clients.sort());
+});
+
 app.get('/api/stats', (req, res) => {
-  const year = req.query.year; // optional year filter
-  
+  const year = req.query.year;
   let whereClause = '';
   let dateWhereClause = '';
   const params = [];
-  
   if (year && /^\d{4}$/.test(year)) {
     whereClause = `WHERE strftime('%Y', date) = ?`;
     dateWhereClause = `AND strftime('%Y', date) = ?`;
     params.push(year);
   }
-  
   const totalJobs  = db.prepare(`SELECT COUNT(*) c FROM jobs ${whereClause}`).get(...params).c;
   const totalMiles = db.prepare(`SELECT SUM(miles) s FROM jobs ${whereClause}`).get(...params).s || 0;
   const byClient   = db.prepare(`SELECT client, SUM(miles) miles, COUNT(*) jobs FROM jobs ${whereClause} GROUP BY client ORDER BY miles DESC`).all(...params);
   const byMonth    = db.prepare(`SELECT strftime('%Y-%m', date) month, SUM(miles) miles, COUNT(*) jobs FROM jobs WHERE date != '' ${dateWhereClause} GROUP BY month ORDER BY month`).all(...(year ? [year] : []));
-  
-  // Available years in the database
   const years = db.prepare(`SELECT DISTINCT strftime('%Y', date) y FROM jobs WHERE date != '' ORDER BY y DESC`).all().map(r => r.y).filter(Boolean);
-  
   res.json({ totalJobs, totalMiles, byClient, byMonth, years });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── ICS Calendar Sync & Pending Jobs ─────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+function parseICS(text) {
+  const events = [];
+  const blocks = text.split('BEGIN:VEVENT');
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i].split('END:VEVENT')[0];
+    const ev = {};
+    const unfolded = block.replace(/\r?\n[ \t]/g, '');
+    for (const line of unfolded.split(/\r?\n/)) {
+      const m = line.match(/^([A-Z\-;=]+?):(.*)$/);
+      if (!m) continue;
+      const key = m[1].split(';')[0];
+      const val = m[2];
+      if (key === 'SUMMARY') ev.summary = val.trim();
+      if (key === 'UID') ev.uid = val.trim();
+      if (key === 'DESCRIPTION') ev.description = val.replace(/\\n/g, '\n').replace(/\\,/g, ',').trim();
+      if (key === 'LOCATION') ev.location = val.replace(/\\,/g, ',').trim();
+      if (key === 'STATUS') ev.status = val.trim();
+      if (key === 'DTSTART' || m[1].startsWith('DTSTART')) {
+        const dval = val.replace('Z', '');
+        if (dval.length >= 8) {
+          ev.date = `${dval.slice(0,4)}-${dval.slice(4,6)}-${dval.slice(6,8)}`;
+        }
+      }
+    }
+    if (ev.summary && ev.date) events.push(ev);
+  }
+  return events;
+}
+
+function normalize(str) {
+  return str.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function getKnownClients() {
+  const fromJobs = db.prepare(`SELECT DISTINCT client FROM jobs WHERE client != ''`).all().map(r => r.client);
+  const fromRoutes = db.prepare(`SELECT DISTINCT client FROM saved_routes WHERE client != ''`).all().map(r => r.client);
+  return [...new Set([...fromJobs, ...fromRoutes])];
+}
+
+function getClientMileage() {
+  const rows = db.prepare(`
+    SELECT client, ROUND(AVG(miles), 1) avg_miles, dest, route, trip_type
+    FROM jobs WHERE client != '' AND miles > 0
+    GROUP BY client ORDER BY COUNT(*) DESC
+  `).all();
+  const map = {};
+  rows.forEach(r => { map[r.client] = { miles: r.avg_miles, dest: r.dest, route: r.route, tripType: r.trip_type }; });
+  return map;
+}
+
+function extractClientFromSummary(summary) {
+  if (summary.includes(' - ')) return summary.split(' - ')[0].trim();
+  if (summary.includes(' – ')) return summary.split(' – ')[0].trim();
+  return summary.trim();
+}
+
+function matchClient(rawName, knownClients) {
+  const raw = normalize(rawName);
+  if (!raw) return null;
+  for (const kc of knownClients) {
+    if (normalize(kc) === raw) return kc;
+  }
+  const sorted = [...knownClients].sort((a, b) => b.length - a.length);
+  for (const kc of sorted) {
+    const nkc = normalize(kc);
+    if (nkc.length >= 3 && raw.includes(nkc)) return kc;
+  }
+  for (const kc of sorted) {
+    const nkc = normalize(kc);
+    if (nkc.length >= 3 && raw.startsWith(nkc)) return kc;
+  }
+  return null;
+}
+
+async function syncCalendar() {
+  try {
+    console.log('[sync] Fetching calendar...');
+    const resp = await fetch(ICS_URL);
+    if (!resp.ok) { console.error(`[sync] HTTP ${resp.status}`); return { added: 0, skipped: 0, error: `HTTP ${resp.status}` }; }
+    const text = await resp.text();
+    const events = parseICS(text);
+    console.log(`[sync] Parsed ${events.length} events`);
+
+    const knownClients = getKnownClients();
+    const clientMileage = getClientMileage();
+    const pendingUids = new Set(db.prepare(`SELECT uid FROM pending_jobs WHERE uid != ''`).all().map(r => r.uid));
+    const approvedKeys = new Set(db.prepare(`SELECT date || '|' || client AS k FROM jobs`).all().map(r => r.k));
+
+    const validEvents = events.filter(ev => {
+      if (ev.status === 'CANCELLED') return false;
+      if (ev.summary && /cancel/i.test(ev.summary)) return false;
+      return true;
+    });
+
+    let added = 0, skipped = 0;
+    const insert = db.prepare(`
+      INSERT INTO pending_jobs (uid, cal_summary, client, date, dest, route, miles, trip_type, trips, notes, match_source, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    `);
+
+    const insertMany = db.transaction((evts) => {
+      for (const ev of evts) {
+        if (ev.uid && pendingUids.has(ev.uid)) { skipped++; continue; }
+        const rawClient = extractClientFromSummary(ev.summary);
+        const matched = matchClient(rawClient, knownClients);
+        const clientName = matched || rawClient;
+        const jobKey = `${ev.date}|${clientName}`;
+        if (approvedKeys.has(jobKey)) { skipped++; continue; }
+
+        let miles = 0, dest = '', route = '', tripType = 'round', matchSource = '';
+        if (matched && clientMileage[matched]) {
+          const cm = clientMileage[matched];
+          miles = cm.miles; dest = cm.dest || ''; route = cm.route || `Office → ${matched}`; tripType = cm.tripType || 'round';
+          matchSource = `matched → "${matched}" (avg ${miles} mi)`;
+        } else {
+          matchSource = matched ? `matched → "${matched}" (no mileage)` : `unmatched: "${rawClient}"`;
+          route = `Office → ${rawClient}`;
+        }
+
+        let notes = '';
+        if (ev.summary.includes(' - ')) notes = ev.summary.split(' - ').slice(1).join(' - ').trim();
+
+        insert.run(ev.uid || '', ev.summary, clientName, ev.date, dest, route, miles, tripType, 1, notes, matchSource);
+        added++;
+      }
+    });
+
+    insertMany(validEvents);
+    console.log(`[sync] Added ${added} pending, skipped ${skipped}`);
+    return { added, skipped, total: validEvents.length };
+  } catch (e) {
+    console.error('[sync] Error:', e.message);
+    return { added: 0, skipped: 0, error: e.message };
+  }
+}
+
+// ── Pending Jobs API ──────────────────────────────────────────────────────────
+app.get('/api/pending', (req, res) => {
+  res.json(db.prepare(`SELECT * FROM pending_jobs WHERE status = 'pending' AND date <= date('now') ORDER BY date DESC, id DESC`).all());
+});
+
+app.get('/api/pending/count', (req, res) => {
+  res.json({ count: db.prepare(`SELECT COUNT(*) c FROM pending_jobs WHERE status = 'pending' AND date <= date('now')`).get().c });
+});
+
+app.patch('/api/pending/:id', (req, res) => {
+  const job = db.prepare('SELECT * FROM pending_jobs WHERE id=?').get(req.params.id);
+  if (!job) return res.status(404).json({ error: 'Not found' });
+  const allowed = ['client','date','dest','route','miles','trip_type','trips','notes'];
+  const updates = [], vals = [];
+  for (const k of allowed) {
+    if (req.body[k] !== undefined) { updates.push(`${k}=?`); vals.push(req.body[k]); }
+  }
+  if (!updates.length) return res.status(400).json({ error: 'Nothing to update' });
+  vals.push(req.params.id);
+  db.prepare(`UPDATE pending_jobs SET ${updates.join(',')} WHERE id=?`).run(...vals);
+  res.json(db.prepare('SELECT * FROM pending_jobs WHERE id=?').get(req.params.id));
+});
+
+app.post('/api/pending/:id/approve', (req, res) => {
+  const p = db.prepare(`SELECT * FROM pending_jobs WHERE id=? AND status='pending'`).get(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Not found or already processed' });
+  if (!p.miles || p.miles <= 0) return res.status(400).json({ error: 'Set miles before approving' });
+  const r = db.prepare(`INSERT INTO jobs (client, date, dest, route, miles, trip_type, trips, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(p.client, p.date, p.dest, p.route, p.miles, p.trip_type, p.trips, p.notes);
+  db.prepare(`UPDATE pending_jobs SET status='approved' WHERE id=?`).run(p.id);
+  res.json(db.prepare('SELECT * FROM jobs WHERE id=?').get(r.lastInsertRowid));
+});
+
+app.post('/api/pending/approve-all', (req, res) => {
+  const pending = db.prepare(`SELECT * FROM pending_jobs WHERE status='pending' AND miles > 0 AND date <= date('now')`).all();
+  const insertJob = db.prepare(`INSERT INTO jobs (client, date, dest, route, miles, trip_type, trips, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+  const markApproved = db.prepare(`UPDATE pending_jobs SET status='approved' WHERE id=?`);
+  db.transaction(() => {
+    for (const p of pending) {
+      insertJob.run(p.client, p.date, p.dest, p.route, p.miles, p.trip_type, p.trips, p.notes);
+      markApproved.run(p.id);
+    }
+  })();
+  res.json({ approved: pending.length });
+});
+
+app.post('/api/pending/:id/dismiss', (req, res) => {
+  const p = db.prepare(`SELECT * FROM pending_jobs WHERE id=? AND status='pending'`).get(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Not found or already processed' });
+  db.prepare(`UPDATE pending_jobs SET status='dismissed' WHERE id=?`).run(p.id);
+  res.json({ ok: true });
+});
+
+app.post('/api/pending/dismiss-all', (req, res) => {
+  const r = db.prepare(`UPDATE pending_jobs SET status='dismissed' WHERE status='pending'`).run();
+  res.json({ dismissed: r.changes });
+});
+
+app.post('/api/sync', async (req, res) => {
+  const result = await syncCalendar();
+  res.json(result);
+});
+
+// Auto-sync every 4 hours, first sync 30s after start
+setInterval(() => { syncCalendar(); }, 4 * 60 * 60 * 1000);
+setTimeout(() => { syncCalendar(); }, 30 * 1000);
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.listen(PORT, () => console.log(`HMS Mileage on port ${PORT}`));
