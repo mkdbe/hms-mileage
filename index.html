@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HIGHLANDMEDIA — MILEAGE</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="HMS Mileage">
+<meta name="apple-mobile-web-app-title" content="Mileage">
 <meta name="theme-color" content="#0a0a0a">
-<title>HIGHLANDMEDIA — MILEAGE</title>
-<link rel="icon" type="image/png" href="mileage-icon.png">
-<link rel="apple-touch-icon" href="mileage-icon.png">
+<link rel="icon" type="image/png" href="favicon.ico">a
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -137,7 +138,7 @@ header{
 .preview-detail .hi{color:var(--white)}
 
 .calc-btn{
-  display:block;width:calc(100% - 36px);margin:0 18px 8px;
+  display:block;width:100%;margin:0 0 8px;
   background:var(--surf);color:var(--muted);border:1px solid var(--border);
   padding:10px;font-family:'Bebas Neue',sans-serif;font-size:14px;
   letter-spacing:.16em;text-transform:uppercase;cursor:pointer;
@@ -146,7 +147,7 @@ header{
 .calc-btn:hover{background:var(--surf2);color:var(--white);border-color:rgba(192,57,43,.5)}
 
 .add-btn{
-  display:block;width:calc(100% - 36px);margin:8px 18px 16px;
+  display:block;width:100%;margin:0 0 16px;
   background:var(--red);color:var(--white);border:none;padding:12px;
   font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.18em;
   text-transform:uppercase;cursor:pointer;flex-shrink:0;transition:background .15s
@@ -162,6 +163,7 @@ header{
 .sc-v{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;margin-bottom:3px;color:var(--white)}
 .sc-v.red{color:var(--red)}
 .sc-v.good{color:var(--good)}
+.sc-v.warn{color:var(--warn)}
 .sc-l{font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2)}
 
 .controls{display:flex;gap:8px;align-items:center;flex-shrink:0}
@@ -257,6 +259,25 @@ header{
 .login-err.on{display:block}
 .login-accent{position:fixed;left:0;top:0;bottom:0;width:3px;background:var(--red)}
 
+/* Dashboard */
+.dash-section{margin-bottom:18px}
+.dash-hdr{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)
+}
+.dash-hdr-title{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.1em;text-transform:uppercase;color:var(--white)}
+.dash-hdr-title span{color:var(--red);margin-left:4px}
+.year-select{
+  background:var(--surf3);border:1px solid var(--border);color:var(--off);
+  font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.06em;
+  padding:5px 24px 5px 10px;outline:none;cursor:pointer;-webkit-appearance:none;
+  transition:border-color .15s;flex-shrink:0
+}
+.year-select:focus{border-color:rgba(192,57,43,.6)}
+.year-select option{background:var(--surf3);font-family:'Barlow',sans-serif;font-size:13px}
+.dash-card{background:var(--surf);border:1px solid var(--border);padding:14px;margin-bottom:8px}
+.dash-card-label{font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px}
+
 @media(max-width:900px){
   html,body{overflow:auto;height:auto}
   header{height:50px;padding:0 14px 0 11px}
@@ -279,7 +300,6 @@ header{
   .tbody{border:none;overflow:visible;background:transparent}
   .tbody-wrap{overflow:visible;min-height:unset}
   
-  /* Compact mobile job cards - only date, client, miles */
   .trow{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);margin-bottom:6px;background:var(--surf)}
   .trow:last-child{border-bottom:1px solid var(--border);margin-bottom:0}
   .td{padding:0;display:none}
@@ -296,7 +316,6 @@ header{
   .m-label{font-size:.55rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:2px}
   .field input,.field select,.field textarea{font-size:16px}
   
-  /* Bottom nav */
   .bnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:200;padding-bottom:var(--safe-b)}
   .bntab{flex:1;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.55rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:color .15s}
   .bntab.on{color:var(--white)}
@@ -429,8 +448,8 @@ header{
           <textarea id="f-notes" placeholder="Setup + strike, venue details…"></textarea>
         </div>
 
-        <button class="calc-btn" onclick="calcMileage()" style="margin:0 0 8px">CALCULATE MILEAGE</button>
-        <button class="add-btn" id="add-btn" disabled onclick="addJob()" style="margin:8px 0 16px">ADD TO LOG</button>
+        <button class="calc-btn" onclick="calcMileage()">CALCULATE MILEAGE</button>
+        <button class="add-btn" id="add-btn" disabled onclick="addJob()">ADD TO LOG</button>
 
       </div>
     </div>
@@ -438,39 +457,83 @@ header{
     <!-- Dashboard Panel -->
     <div class="spanel" id="panel-dashboard">
       <div class="fscroll" style="padding:18px">
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px">
-          <div class="sc">
-            <div class="sc-v good" id="d-total-mi">0</div>
-            <div class="sc-l">TOTAL MILES</div>
+
+        <!-- ALL TIME section -->
+        <div class="dash-section">
+          <div class="dash-hdr">
+            <div class="dash-hdr-title">All Time</div>
           </div>
-          <div class="sc">
-            <div class="sc-v" id="d-total-jobs">0</div>
-            <div class="sc-l">TOTAL JOBS</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px">
+            <div class="sc">
+              <div class="sc-v good" id="d-all-mi">0</div>
+              <div class="sc-l">TOTAL MILES</div>
+            </div>
+            <div class="sc">
+              <div class="sc-v" id="d-all-jobs">0</div>
+              <div class="sc-l">TOTAL JOBS</div>
+            </div>
+            <div class="sc">
+              <div class="sc-v" id="d-all-avg">0</div>
+              <div class="sc-l">AVG MI/JOB</div>
+            </div>
+            <div class="sc">
+              <div class="sc-v red" id="d-all-reimb">$0</div>
+              <div class="sc-l">EST. REIMB</div>
+            </div>
           </div>
-          <div class="sc">
-            <div class="sc-v" id="d-avg-mi">0</div>
-            <div class="sc-l">AVG MI/JOB</div>
+
+          <div class="dash-card">
+            <div class="dash-card-label">MILES BY MONTH — ALL TIME</div>
+            <canvas id="chart-alltime-monthly" style="max-height:180px"></canvas>
           </div>
-          <div class="sc">
-            <div class="sc-v red" id="d-reimb">$0</div>
-            <div class="sc-l">EST. REIMB</div>
+
+          <div class="dash-card">
+            <div class="dash-card-label">MILES BY YEAR</div>
+            <canvas id="chart-yearly" style="max-height:160px"></canvas>
           </div>
-        </div>
-        
-        <div style="background:var(--surf);border:1px solid var(--border);padding:14px;margin-bottom:12px">
-          <div style="font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px">MILES BY MONTH</div>
-          <canvas id="chart-monthly" style="max-height:180px"></canvas>
+
+          <div class="dash-card">
+            <div class="dash-card-label">TOP CLIENTS — ALL TIME</div>
+            <div id="alltime-clients-list"></div>
+          </div>
         </div>
 
-        <div style="background:var(--surf);border:1px solid var(--border);padding:14px;margin-bottom:12px">
-          <div style="font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px">TRIP TYPE BREAKDOWN</div>
-          <canvas id="chart-triptype" style="max-height:180px"></canvas>
+        <!-- YEAR section -->
+        <div class="dash-section">
+          <div class="dash-hdr">
+            <div class="dash-hdr-title">Year<span id="year-label"></span></div>
+            <select class="year-select" id="year-select" onchange="onYearChange()"></select>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px">
+            <div class="sc">
+              <div class="sc-v good" id="d-yr-mi">0</div>
+              <div class="sc-l">MILES</div>
+            </div>
+            <div class="sc">
+              <div class="sc-v" id="d-yr-jobs">0</div>
+              <div class="sc-l">JOBS</div>
+            </div>
+            <div class="sc">
+              <div class="sc-v" id="d-yr-avg">0</div>
+              <div class="sc-l">AVG MI/JOB</div>
+            </div>
+            <div class="sc">
+              <div class="sc-v red" id="d-yr-reimb">$0</div>
+              <div class="sc-l">EST. REIMB</div>
+            </div>
+          </div>
+
+          <div class="dash-card">
+            <div class="dash-card-label">MILES BY MONTH — <span id="chart-yr-month-label"></span></div>
+            <canvas id="chart-yr-monthly" style="max-height:180px"></canvas>
+          </div>
+
+          <div class="dash-card">
+            <div class="dash-card-label">TOP CLIENTS — <span id="chart-yr-client-label"></span></div>
+            <div id="yr-clients-list"></div>
+          </div>
         </div>
 
-        <div style="background:var(--surf);border:1px solid var(--border);padding:14px">
-          <div style="font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px">TOP CLIENTS</div>
-          <div id="top-clients-list"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -481,22 +544,25 @@ header{
     <div class="stats">
       <div class="sc">
         <div class="sc-v good" id="stat-miles">0.0</div>
-        <div class="sc-l">Total Miles</div>
+        <div class="sc-l">Miles This Year</div>
       </div>
       <div class="sc">
         <div class="sc-v" id="stat-jobs">0</div>
-        <div class="sc-l">Jobs</div>
+        <div class="sc-l">Jobs This Year</div>
       </div>
       <div class="sc">
         <div class="sc-v red" id="stat-reimb">$0</div>
-        <div class="sc-l">Est. Reimb.</div>
+        <div class="sc-l">Est. Reimb. YTD</div>
       </div>
     </div>
 
     <!-- Controls -->
     <div class="controls">
+      <div style="flex:1"></div>
+      <select class="cbtn" id="csv-year-select" style="padding:7px 12px">
+        <option value="all">ALL YEARS</option>
+      </select>
       <button class="cbtn" onclick="exportCSV()">↓ CSV</button>
-      <button class="cbtn" onclick="clearAll()">CLEAR ALL</button>
     </div>
 
     <!-- Table -->
@@ -597,6 +663,8 @@ let lastRoute = null;
 let selectedAutocompleteIndex = -1;
 let activeTab = 'add';
 let charts = {};
+let availableYears = [];
+let selectedYear = null;
 
 document.getElementById('f-date').valueAsDate = new Date();
 
@@ -1018,12 +1086,6 @@ function deleteJob(id) {
     apiDeleteJob(id);
 }
 
-function clearAll() {
-    if (!jobs.length || !confirm('Clear all jobs? This cannot be undone.')) return;
-    Promise.all(jobs.map(j => fetch(`/api/jobs/${j.id}`, { method: 'DELETE' })))
-        .then(() => { jobs = []; render(); showToast('ALL JOBS CLEARED'); });
-}
-
 function resetForm() {
     document.getElementById('f-client').value = '';
     document.getElementById('saved-routes-wrap').style.display = 'none';
@@ -1053,13 +1115,18 @@ function resetCalc() {
 function render() {
     const tbody = document.getElementById('tbody');
     const totalMi = jobs.reduce((s,j) => s + j.miles, 0);
-    const reimb = totalMi * RATE;
     
-    document.getElementById('stat-miles').textContent = totalMi.toFixed(1);
-    document.getElementById('stat-jobs').textContent = jobs.length;
-    document.getElementById('stat-reimb').textContent = '$' + reimb.toFixed(0);
+    // Header pills: all-time totals
     document.getElementById('hdr-miles').textContent = totalMi.toFixed(1);
     document.getElementById('hdr-jobs').textContent = jobs.length;
+    
+    // Main page stats: current year
+    const currentYear = new Date().getFullYear().toString();
+    const yrJobs = jobs.filter(j => j.date && j.date.startsWith(currentYear));
+    const yrMi = yrJobs.reduce((s,j) => s + j.miles, 0);
+    document.getElementById('stat-miles').textContent = yrMi.toFixed(1);
+    document.getElementById('stat-jobs').textContent = yrJobs.length;
+    document.getElementById('stat-reimb').textContent = '$' + (yrMi * RATE).toFixed(0);
     
     if (!jobs.length) {
         tbody.innerHTML = `
@@ -1100,10 +1167,44 @@ function render() {
     });
     
     if (activeTab === 'dashboard') renderDashboard();
+    populateCsvYearSelect();
 }
 
 function exportCSV() {
-    window.location.href = '/api/export';
+    const yearFilter = document.getElementById('csv-year-select').value;
+    const filtered = yearFilter === 'all' ? jobs : jobs.filter(j => j.date && j.date.startsWith(yearFilter));
+    
+    if (!filtered.length) {
+        showToast('NO DATA TO EXPORT');
+        return;
+    }
+    
+    const header = 'Date,Client,Destination,Route,Miles,Trip Type,Trips,Notes';
+    const rows = filtered.map(j => {
+        const esc = v => `"${String(v || '').replace(/"/g, '""')}"`;
+        return [j.date, esc(j.client), esc(j.dest), esc(j.route), j.miles.toFixed(1), j.tripType, j.trips, esc(j.notes)].join(',');
+    });
+    
+    const csv = header + '\n' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = yearFilter === 'all' ? 'mileage-all.csv' : `mileage-${yearFilter}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function populateCsvYearSelect() {
+    const sel = document.getElementById('csv-year-select');
+    const years = [...new Set(jobs.filter(j => j.date).map(j => j.date.slice(0, 4)))].sort().reverse();
+    sel.innerHTML = '<option value="all">ALL YEARS</option>';
+    years.forEach(y => {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        sel.appendChild(opt);
+    });
 }
 
 // Edit modal
@@ -1165,7 +1266,6 @@ function switchTab(tab) {
 function switchTabMobile(tab) {
     activeTab = tab;
     
-    // Update bottom nav
     document.querySelectorAll('.bntab').forEach(b => {
         const text = b.textContent.toLowerCase();
         b.classList.toggle('on',
@@ -1175,21 +1275,19 @@ function switchTabMobile(tab) {
         );
     });
     
-    // Show/hide panels
     const isSidebar = tab === 'add' || tab === 'dashboard';
     const isMain = tab === 'log';
     
     document.querySelector('.sidebar').style.display = isSidebar ? 'block' : 'none';
     document.querySelector('.main').style.display = isMain ? 'flex' : 'none';
     
-    // Update sidebar panels
     document.getElementById('panel-add').classList.toggle('on', tab === 'add');
     document.getElementById('panel-dashboard').classList.toggle('on', tab === 'dashboard');
     
     if (tab === 'dashboard') renderDashboard();
 }
 
-// Dashboard
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 const CHART_DEFAULTS = {
     color: 'rgba(232,228,221,0.38)',
     borderColor: 'rgba(255,255,255,0.07)',
@@ -1205,35 +1303,70 @@ function destroyChart(id) {
     }
 }
 
-function renderDashboard() {
+function onYearChange() {
+    selectedYear = document.getElementById('year-select').value;
+    renderYearDashboard();
+}
+
+async function renderDashboard() {
     if (!jobs.length) return;
     
-    const totalMi = jobs.reduce((s,j) => s + j.miles, 0);
-    document.getElementById('d-total-mi').textContent = totalMi.toFixed(1);
-    document.getElementById('d-total-jobs').textContent = jobs.length;
-    document.getElementById('d-avg-mi').textContent = (totalMi / jobs.length).toFixed(1);
-    document.getElementById('d-reimb').textContent = '$' + (totalMi * RATE).toFixed(0);
+    // Fetch all-time stats from server (includes available years)
+    try {
+        const res = await fetch('/api/stats');
+        const stats = await res.json();
+        availableYears = stats.years || [];
+        
+        // Populate year selector
+        const sel = document.getElementById('year-select');
+        const currentVal = sel.value;
+        sel.innerHTML = '';
+        availableYears.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            sel.appendChild(opt);
+        });
+        
+        // Default to current year if available, otherwise first year
+        const currentYear = new Date().getFullYear().toString();
+        if (!selectedYear || !availableYears.includes(selectedYear)) {
+            selectedYear = availableYears.includes(currentYear) ? currentYear : availableYears[0];
+        }
+        sel.value = selectedYear;
+        
+        renderAllTimeDashboard(stats);
+        renderYearDashboard();
+    } catch(e) {
+        console.error('Stats fetch failed:', e);
+        // Fallback: render from local data
+        renderAllTimeFromLocal();
+        renderYearFromLocal();
+    }
+}
+
+function renderAllTimeDashboard(stats) {
+    const totalMi = stats.totalMiles;
+    const totalJobs = stats.totalJobs;
     
-    // Miles by month
-    const byMonth = {};
-    jobs.forEach(j => {
-        if (!j.date) return;
-        const key = j.date.slice(0, 7);
-        byMonth[key] = (byMonth[key] || 0) + j.miles;
-    });
-    const monthKeys = Object.keys(byMonth).sort();
-    const monthLabels = monthKeys.map(k => {
-        const [y, m] = k.split('-');
-        return new Date(+y, +m - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    document.getElementById('d-all-mi').textContent = totalMi.toFixed(1);
+    document.getElementById('d-all-jobs').textContent = totalJobs;
+    document.getElementById('d-all-avg').textContent = totalJobs > 0 ? (totalMi / totalJobs).toFixed(1) : '0';
+    document.getElementById('d-all-reimb').textContent = '$' + (totalMi * RATE).toFixed(0);
+    
+    // Miles by month — all time
+    const monthLabels = stats.byMonth.map(m => {
+        const [y, mo] = m.month.split('-');
+        return new Date(+y, +mo - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
     });
     
-    destroyChart('monthly');
-    charts['monthly'] = new Chart(document.getElementById('chart-monthly'), {
+    destroyChart('alltime-monthly');
+    charts['alltime-monthly'] = new Chart(document.getElementById('chart-alltime-monthly'), {
         type: 'bar',
         data: {
             labels: monthLabels,
             datasets: [{
-                data: monthKeys.map(k => +byMonth[k].toFixed(1)),
+                data: stats.byMonth.map(m => +m.miles.toFixed(1)),
                 backgroundColor: 'rgba(58,170,116,0.7)',
                 borderColor: 'rgba(58,170,116,1)',
                 borderWidth: 1,
@@ -1243,7 +1376,7 @@ function renderDashboard() {
         options: {
             plugins: { legend: { display: false } },
             scales: {
-                x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 10 } } },
+                x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 9 }, maxRotation: 45 } },
                 y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 10 } } }
             },
             responsive: true,
@@ -1251,42 +1384,115 @@ function renderDashboard() {
         }
     });
     
-    // Trip type
-    const roundMi = jobs.filter(j => j.tripType === 'round').reduce((s,j) => s + j.miles, 0);
-    const oneMi   = jobs.filter(j => j.tripType !== 'round').reduce((s,j) => s + j.miles, 0);
-    destroyChart('triptype');
-    charts['triptype'] = new Chart(document.getElementById('chart-triptype'), {
-        type: 'doughnut',
+    // Miles by year
+    const byYear = {};
+    stats.byMonth.forEach(m => {
+        const y = m.month.slice(0, 4);
+        byYear[y] = (byYear[y] || 0) + m.miles;
+    });
+    const yearKeys = Object.keys(byYear).sort();
+    
+    destroyChart('yearly');
+    charts['yearly'] = new Chart(document.getElementById('chart-yearly'), {
+        type: 'bar',
         data: {
-            labels: ['Round Trip', 'One Way'],
+            labels: yearKeys,
             datasets: [{
-                data: [+roundMi.toFixed(1), +oneMi.toFixed(1)],
-                backgroundColor: ['rgba(58,170,116,0.8)', 'rgba(212,146,42,0.7)'],
-                borderColor: ['#3aaa74', '#d4922a'],
+                data: yearKeys.map(y => +byYear[y].toFixed(1)),
+                backgroundColor: yearKeys.map(y => y === selectedYear ? 'rgba(192,57,43,0.8)' : 'rgba(58,170,116,0.5)'),
+                borderColor: yearKeys.map(y => y === selectedYear ? '#c0392b' : 'rgba(58,170,116,1)'),
                 borderWidth: 1,
+                borderRadius: 3,
             }]
         },
         options: {
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 14, font: { size: 11 }, color: 'rgba(232,228,221,0.38)' }
-                }
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 12 } } },
+                y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 10 } } }
             },
-            cutout: '65%',
             responsive: true,
             maintainAspectRatio: true,
         }
     });
     
-    // Top clients
-    const byClient = {};
-    jobs.forEach(j => { byClient[j.client] = (byClient[j.client] || 0) + j.miles; });
-    const sorted = Object.entries(byClient).sort((a,b) => b[1] - a[1]).slice(0, 8);
-    const maxMi = sorted[0]?.[1] || 1;
-    const list = document.getElementById('top-clients-list');
+    // Top clients — all time
+    const sorted = stats.byClient.slice(0, 8);
+    const maxMi = sorted[0]?.miles || 1;
+    renderClientList('alltime-clients-list', sorted.map(c => [c.client, c.miles]), maxMi);
+}
+
+async function renderYearDashboard() {
+    if (!selectedYear) return;
+    
+    document.getElementById('year-label').textContent = selectedYear;
+    document.getElementById('chart-yr-month-label').textContent = selectedYear;
+    document.getElementById('chart-yr-client-label').textContent = selectedYear;
+    
+    try {
+        const res = await fetch(`/api/stats?year=${selectedYear}`);
+        const stats = await res.json();
+        
+        document.getElementById('d-yr-mi').textContent = stats.totalMiles.toFixed(1);
+        document.getElementById('d-yr-jobs').textContent = stats.totalJobs;
+        document.getElementById('d-yr-avg').textContent = stats.totalJobs > 0 ? (stats.totalMiles / stats.totalJobs).toFixed(1) : '0';
+        document.getElementById('d-yr-reimb').textContent = '$' + (stats.totalMiles * RATE).toFixed(0);
+        
+        // Monthly chart for selected year
+        const allMonths = [];
+        for (let m = 1; m <= 12; m++) {
+            allMonths.push(`${selectedYear}-${String(m).padStart(2,'0')}`);
+        }
+        const monthData = {};
+        stats.byMonth.forEach(m => { monthData[m.month] = m.miles; });
+        
+        const monthLabels = allMonths.map(k => {
+            const [y, m] = k.split('-');
+            return new Date(+y, +m - 1).toLocaleDateString('en-US', { month: 'short' });
+        });
+        
+        destroyChart('yr-monthly');
+        charts['yr-monthly'] = new Chart(document.getElementById('chart-yr-monthly'), {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    data: allMonths.map(k => +(monthData[k] || 0).toFixed(1)),
+                    backgroundColor: 'rgba(192,57,43,0.6)',
+                    borderColor: 'rgba(192,57,43,1)',
+                    borderWidth: 1,
+                    borderRadius: 2,
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 10 } } },
+                    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 10 } } }
+                },
+                responsive: true,
+                maintainAspectRatio: true,
+            }
+        });
+        
+        // Top clients for year
+        const sorted = stats.byClient.slice(0, 8);
+        const maxMi = sorted[0]?.miles || 1;
+        renderClientList('yr-clients-list', sorted.map(c => [c.client, c.miles]), maxMi);
+        
+    } catch(e) {
+        console.error('Year stats fetch failed:', e);
+    }
+}
+
+function renderClientList(containerId, data, maxMi) {
+    const list = document.getElementById(containerId);
     list.innerHTML = '';
-    sorted.forEach(([name, mi]) => {
+    if (!data.length) {
+        list.innerHTML = '<div style="font-size:12px;color:var(--muted2);padding:8px 0">No data</div>';
+        return;
+    }
+    data.forEach(([name, mi]) => {
         const pct = (mi / maxMi * 100).toFixed(1);
         const div = document.createElement('div');
         div.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px';
@@ -1299,6 +1505,25 @@ function renderDashboard() {
         `;
         list.appendChild(div);
     });
+}
+
+// Fallback renderers (if API fails, render from local jobs array)
+function renderAllTimeFromLocal() {
+    const totalMi = jobs.reduce((s,j) => s + j.miles, 0);
+    document.getElementById('d-all-mi').textContent = totalMi.toFixed(1);
+    document.getElementById('d-all-jobs').textContent = jobs.length;
+    document.getElementById('d-all-avg').textContent = jobs.length > 0 ? (totalMi / jobs.length).toFixed(1) : '0';
+    document.getElementById('d-all-reimb').textContent = '$' + (totalMi * RATE).toFixed(0);
+}
+
+function renderYearFromLocal() {
+    if (!selectedYear) return;
+    const yrJobs = jobs.filter(j => j.date && j.date.startsWith(selectedYear));
+    const totalMi = yrJobs.reduce((s,j) => s + j.miles, 0);
+    document.getElementById('d-yr-mi').textContent = totalMi.toFixed(1);
+    document.getElementById('d-yr-jobs').textContent = yrJobs.length;
+    document.getElementById('d-yr-avg').textContent = yrJobs.length > 0 ? (totalMi / yrJobs.length).toFixed(1) : '0';
+    document.getElementById('d-yr-reimb').textContent = '$' + (totalMi * RATE).toFixed(0);
 }
 
 function showToast(msg) {
@@ -1341,27 +1566,22 @@ async function doLogout(){
   render();
 }
 
-// Allow Enter key on login form
 document.getElementById('loginUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPass').focus();});
 document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 
 // Init
 async function init(){
   try{
-    // Check if authenticated
     const authCheck = await fetch('/api/check-auth');
     const { authenticated } = await authCheck.json();
     
     if (authenticated) {
-      // Already logged in, hide login screen and load data
       document.getElementById('loginScreen').classList.add('out');
       await loadAll();
     } else {
-      // Not authenticated, show login screen
       document.getElementById('loginScreen').classList.remove('out');
     }
   }catch(e){
-    // Error checking auth, show login screen
     document.getElementById('loginScreen').classList.remove('out');
   }
 }
