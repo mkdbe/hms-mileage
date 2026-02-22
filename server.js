@@ -223,7 +223,7 @@ function parseICS(text) {
     const ev = {};
     const unfolded = block.replace(/\r?\n[ \t]/g, '');
     for (const line of unfolded.split(/\r?\n/)) {
-      const m = line.match(/^([A-Z\-;=]+?):(.*)$/);
+      const m = line.match(/^([A-Za-z0-9\-;=/_]+):(.*)$/);
       if (!m) continue;
       const key = m[1].split(';')[0];
       const val = m[2];
