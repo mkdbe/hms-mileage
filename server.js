@@ -353,11 +353,11 @@ async function syncCalendar() {
 
 // ── Pending Jobs API ──────────────────────────────────────────────────────────
 app.get('/api/pending', (req, res) => {
-  res.json(db.prepare(`SELECT * FROM pending_jobs WHERE status = 'pending' AND date <= date('now') ORDER BY date DESC, id DESC`).all());
+  res.json(db.prepare(`SELECT * FROM pending_jobs WHERE status = 'pending' AND date <= date('now') AND date >= '2026-01-01' AND date >= '2026-01-01' ORDER BY date DESC, id DESC`).all());
 });
 
 app.get('/api/pending/count', (req, res) => {
-  res.json({ count: db.prepare(`SELECT COUNT(*) c FROM pending_jobs WHERE status = 'pending' AND date <= date('now')`).get().c });
+  res.json({ count: db.prepare(`SELECT COUNT(*) c FROM pending_jobs WHERE status = 'pending' AND date <= date('now') AND date >= '2026-01-01' AND date >= '2026-01-01'`).get().c });
 });
 
 app.patch('/api/pending/:id', (req, res) => {
@@ -385,7 +385,7 @@ app.post('/api/pending/:id/approve', (req, res) => {
 });
 
 app.post('/api/pending/approve-all', (req, res) => {
-  const pending = db.prepare(`SELECT * FROM pending_jobs WHERE status='pending' AND miles > 0 AND date <= date('now')`).all();
+  const pending = db.prepare(`SELECT * FROM pending_jobs WHERE status='pending' AND miles > 0 AND date <= date('now') AND date >= '2026-01-01' AND date >= '2026-01-01'`).all();
   const insertJob = db.prepare(`INSERT INTO jobs (client, date, dest, route, miles, trip_type, trips, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
   const markApproved = db.prepare(`UPDATE pending_jobs SET status='approved' WHERE id=?`);
   db.transaction(() => {
