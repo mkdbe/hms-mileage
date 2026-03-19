@@ -388,10 +388,10 @@ header{
   .td{padding:0;display:none}
   .td-date{display:block;font-size:11px;color:var(--muted2);min-width:70px}
   .td-client{display:block;flex:1;padding:0 10px}
-  .td-client .client-name{font-size:14px;font-weight:500}
+  .td-client .client-name{font-size:14px;font-weight:500;cursor:pointer;-webkit-tap-highlight-color:transparent}
   .td-client .trip-badge{display:none}
   .td-miles{display:block;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--good);min-width:50px;text-align:right}
-  .row-acts{display:flex;gap:2px;margin-left:8px}
+  .row-acts{display:none}
   
   .m-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px}
   .m-mid{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:9px}
@@ -400,9 +400,9 @@ header{
   .field input,.field select,.field textarea{font-size:16px}
   
   .bnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:200;padding-bottom:var(--safe-b)}
-  .bntab{flex:1;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.55rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:color .15s}
+  .bntab{flex:1;padding:14px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.55rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:color .15s}
   .bntab.on{color:var(--white)}
-  .bntab .bni{font-size:20px;line-height:1}
+  .bntab .bni{font-size:24px;line-height:1}
 }
 </style>
 </head>
@@ -730,6 +730,7 @@ header{
     </div>
     <div class="modal-acts">
       <button class="btn-cancel" onclick="closeEditModal()">CANCEL</button>
+      <button class="btn-cancel" onclick="deleteFromModal()" style="color:var(--red2);border-color:rgba(192,57,43,.4)">DELETE</button>
       <button class="btn-save" onclick="saveEdit()">SAVE CHANGES</button>
     </div>
   </div>
@@ -1211,6 +1212,11 @@ function deleteJob(id) {
     });
 }
 
+function deleteFromModal() {
+    const id = parseInt(document.getElementById('edit-id').value);
+    closeEditModal();
+    deleteJob(id);
+}
 function resetForm() {
     document.getElementById('f-client').value = '';
     document.getElementById('saved-routes-wrap').style.display = 'none';
@@ -1277,15 +1283,15 @@ function render() {
         row.innerHTML = `
             <div class="td td-date">${dateStr}</div>
             <div class="td td-client">
-                <div class="client-name">${j.client}</div>
+                <div class="client-name" onclick="openEditModal(${j.id})">${j.client}</div>
                 <div class="${badgeClass}">${tripLabel}</div>
             </div>
             <div class="td td-route">${j.route||'—'}</div>
             <div class="td td-miles">${j.miles.toFixed(1)}</div>
             <div class="td td-notes">${j.notes||'—'}</div>
             <div class="td row-acts">
-                <button class="ibtn" onclick="openEditModal(${j.id})" title="Edit">✎</button>
-                <button class="ibtn db" onclick="deleteJob(${j.id})" title="Delete">×</button>
+                
+                
             </div>
         `;
         tbody.appendChild(row);
