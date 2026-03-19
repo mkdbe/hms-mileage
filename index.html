@@ -361,7 +361,10 @@ header{
 .dash-card-label{font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px}
 
 @media(max-width:900px){
-  .rc-fields{grid-template-columns:1fr!important}
+  .rc-fields{grid-template-columns:1fr 1fr!important;gap:6px 8px!important}
+  .rc-field{min-width:0!important;overflow:hidden!important}
+  .rc-field input{width:100%!important;min-width:0!important;box-sizing:border-box!important;text-overflow:ellipsis!important}
+  .rc-field input[type="date"]{-webkit-appearance:none!important;padding-right:6px!important}
   html,body{overflow:auto;height:auto}
   header{height:50px;padding:0 14px 0 11px}
   .brand-logo{font-size:22px}
@@ -392,6 +395,7 @@ header{
   .td-client .trip-badge{display:none}
   .td-miles{display:block;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--good);min-width:50px;text-align:right}
   .row-acts{display:none}
+  .controls{display:none!important}
   
   .m-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px}
   .m-mid{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:9px}
