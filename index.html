@@ -37,7 +37,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--off);height:100%;overflow:hidden}
 
-.accent-line{position:fixed;left:0;top:0;bottom:0;width:3px;background:var(--red);z-index:400}
+.accent-line{display:none}
 
 header{
   height:58px;background:var(--bg2);border-bottom:1px solid var(--border);
@@ -221,7 +221,7 @@ header{
 .btn-cancel:hover{color:var(--off)}
 
 .toast{position:fixed;bottom:calc(20px + var(--safe-b));right:20px;background:var(--red);color:var(--white);padding:9px 16px;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.14em;text-transform:uppercase;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:999}
-.toast.on{opacity:1;transform:translateY(0)}
+.toast.on{opacity:1;transform:translateY(0);pointer-events:auto}
 
 /* Login screen */
 .login-screen{
@@ -297,6 +297,44 @@ header{
 .rc-btn.dismiss{background:transparent;color:var(--muted);border:1px solid var(--border)}
 .rc-btn.dismiss:hover{color:var(--red2);border-color:var(--red)}
 .rc-zoom-tag{display:inline-block;font-size:9px;font-weight:600;letter-spacing:.08em;padding:2px 6px;background:rgba(74,144,217,.15);color:#4a90d9;margin-left:6px;vertical-align:middle}
+/* Pending client dropdown — matches Add tab autocomplete */
+.pc-dropdown{
+  position:absolute;top:100%;left:0;right:0;background:var(--surf2);
+  border:1px solid var(--border);border-top:none;max-height:200px;overflow-y:auto;
+  z-index:50;display:none
+}
+.pc-dropdown.open{display:block}
+.pc-dropdown::-webkit-scrollbar{width:2px}
+.pc-dropdown::-webkit-scrollbar-thumb{background:var(--border)}
+.pc-dropdown .pc-item{
+  padding:11px 12px;font-size:14px;color:var(--off);cursor:pointer;
+  transition:background .1s;-webkit-tap-highlight-color:transparent
+}
+.pc-dropdown .pc-item:active{background:var(--surf3)}
+.pc-dropdown .pc-new{
+  padding:11px 12px;font-size:12px;color:var(--muted);cursor:pointer;
+  border-top:1px solid var(--border);-webkit-tap-highlight-color:transparent
+}
+.pc-dropdown .pc-new:active{background:var(--surf3)}
+/* Pending client dropdown — matches Add tab autocomplete */
+.pc-dropdown{
+  position:absolute;top:100%;left:0;right:0;background:var(--surf2);
+  border:1px solid var(--border);border-top:none;max-height:200px;overflow-y:auto;
+  z-index:50;display:none
+}
+.pc-dropdown.open{display:block}
+.pc-dropdown::-webkit-scrollbar{width:2px}
+.pc-dropdown::-webkit-scrollbar-thumb{background:var(--border)}
+.pc-dropdown .pc-item{
+  padding:11px 12px;font-size:14px;color:var(--off);cursor:pointer;
+  transition:background .1s;-webkit-tap-highlight-color:transparent
+}
+.pc-dropdown .pc-item:active{background:var(--surf3)}
+.pc-dropdown .pc-new{
+  padding:11px 12px;font-size:12px;color:var(--muted);cursor:pointer;
+  border-top:1px solid var(--border);-webkit-tap-highlight-color:transparent
+}
+.pc-dropdown .pc-new:active{background:var(--surf3)}
 .sync-bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
 .sync-btn{background:var(--surf);border:1px solid var(--border);padding:8px 14px;color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
 .sync-btn:hover{color:var(--white);border-color:rgba(192,57,43,.5)}
@@ -323,6 +361,7 @@ header{
 .dash-card-label{font-size:.55rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px}
 
 @media(max-width:900px){
+  .rc-fields{grid-template-columns:1fr!important}
   html,body{overflow:auto;height:auto}
   header{height:50px;padding:0 14px 0 11px}
   .brand-logo{font-size:22px}
@@ -729,6 +768,8 @@ let lastMiles = null;
 let lastRoute = null;
 let selectedAutocompleteIndex = -1;
 let activeTab = 'add';
+let pendingDelete = null;
+let deleteTimeout = null;
 let charts = {};
 let availableYears = [];
 let selectedYear = null;
@@ -1149,8 +1190,25 @@ function addJob() {
 }
 
 function deleteJob(id) {
-    if (!confirm('Delete this job?')) return;
-    apiDeleteJob(id);
+    if (pendingDelete) {
+        clearTimeout(deleteTimeout);
+        apiDeleteJob(pendingDelete.id);
+    }
+    const row = document.querySelector(`[onclick*="deleteJob(${id})"]`);
+    const trow = row ? row.closest(".trow") : null;
+    if (trow) trow.style.opacity = "0.2";
+    pendingDelete = { id: id };
+    deleteTimeout = setTimeout(function() {
+        if (pendingDelete && pendingDelete.id === id) {
+            apiDeleteJob(id);
+            pendingDelete = null;
+        }
+    }, 5000);
+    showUndoToast("JOB DELETED", function() {
+        clearTimeout(deleteTimeout);
+        pendingDelete = null;
+        if (trow) trow.style.opacity = "1";
+    });
 }
 
 function resetForm() {
@@ -1721,9 +1779,25 @@ function filterPendingClients(id, query) {
     const q = query.toLowerCase().trim();
     if (!q) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
     const matches = knownClients.filter(c => c.toLowerCase().includes(q));
-    let html = matches.map(c => '<div onclick="selectPendingClient(' + id + ',\'' + c.replace(/'/g,'') + '\')">' + c + '</div>').join('');
-    html += '<div class="pc-new" onclick="selectPendingClient(' + id + ',\'' + query.replace(/'/g,'') + '\')">+ Use "' + query + '"</div>';
-    dd.innerHTML = html;
+    dd.innerHTML = ''; 
+    matches.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'pc-item';
+        item.textContent = c;
+        item.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            selectPendingClient(id, c);
+        });
+        dd.appendChild(item);
+    });
+    const newItem = document.createElement('div');
+    newItem.className = 'pc-new';
+    newItem.textContent = '+ Use "' + query + '"';
+    newItem.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        selectPendingClient(id, query);
+    });
+    dd.appendChild(newItem);
     dd.classList.add('open');
 }
 async function selectPendingClient(id, value) {
@@ -1912,7 +1986,25 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove('on'), 2000);
 }
 
-// Login
+function showUndoToast(msg, onUndo) {
+    const toast = document.getElementById('toast');
+    toast.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = msg;
+    toast.appendChild(span);
+    const btn = document.createElement('button');
+    btn.textContent = 'UNDO';
+    btn.style.cssText = 'background:none;border:1px solid rgba(255,255,255,.5);color:#fff;padding:4px 14px;margin-left:12px;font-family:Bebas Neue,sans-serif;font-size:13px;letter-spacing:.12em;cursor:pointer';
+    btn.addEventListener('click', function() {
+        clearTimeout(deleteTimeout);
+        toast.classList.remove('on');
+        if (onUndo) onUndo();
+    });
+    toast.appendChild(btn);
+    toast.classList.add('on');
+    setTimeout(function() { toast.classList.remove('on'); }, 5000);
+}
+
 async function doLogin(){
   const user=document.getElementById('loginUser').value.trim();
   const pass=document.getElementById('loginPass').value;
