@@ -1195,6 +1195,12 @@ function addJob() {
 }
 
 function deleteJob(id) {
+    if (window.innerWidth > 900) {
+        const name = jobs.find(j => j.id === id)?.client || 'this job';
+        if (!confirm('Delete "' + name + '"?')) return;
+        apiDeleteJob(id);
+        return;
+    }
     if (pendingDelete) {
         clearTimeout(deleteTimeout);
         apiDeleteJob(pendingDelete.id);
@@ -1287,7 +1293,7 @@ function render() {
         row.innerHTML = `
             <div class="td td-date">${dateStr}</div>
             <div class="td td-client">
-                <div class="client-name" onclick="openEditModal(${j.id})">${j.client}</div>
+                <div class="client-name" onclick="openEditModal(${j.id})" style="cursor:pointer;padding:4px 6px;margin:-4px -6px">${j.client}</div>
                 <div class="${badgeClass}">${tripLabel}</div>
             </div>
             <div class="td td-route">${j.route||'—'}</div>
