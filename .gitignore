@@ -20,6 +20,5 @@ npm-debug.log*
 Thumbs.db
 
 # Backups
-*.bak
-*.bak2
+*.bak*
 *.backup
