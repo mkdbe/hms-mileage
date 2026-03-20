@@ -4,10 +4,11 @@ const crypto = require('crypto');
 const path = require('path');
 const app = express();
 const PORT = 3004;
+require('dotenv').config();
 
 // ── Credentials ───────────────────────────────────────────────────────────────
-const AUTH_USER = process.env.HMS_USER || 'REDACTED';
-const AUTH_PASS = process.env.HMS_PASS || 'REDACTED';
+const AUTH_USER = process.env.INVENTORY_USER;
+const AUTH_PASS = process.env.INVENTORY_PASS;
 
 // ── Calendar ICS URL ──────────────────────────────────────────────────────────
 const ICS_URL = process.env.HMS_ICS_URL || 'https://calendar.proton.me/api/calendar/v1/url/2mAFhzOO2ORXp6rl5NppYCF9ND3ya90aZ3-G28Uh31IC3njVmM794GD0MGy1qHhlYmDen7EYopDReAL9iiIyaQ==/calendar.ics?CacheKey=AWcT-m9oDsb7I4bS4EKMYQ%3D%3D&PassphraseKey=QCkPPSLa262wz8ce0Im3NC2vavd_K-J4OsCvWVUMrcw%3D';
